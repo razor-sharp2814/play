@@ -96,10 +96,30 @@
     -webkit-tap-highlight-color: transparent;
   }
   canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* Jump counter, top left (kept clear of the notch) */
+  #counter {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    left: calc(env(safe-area-inset-left, 0px) + 14px);
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 16px 4px 6px;
+    border-radius: 999px;
+    background: rgba(37, 16, 79, 0.45);
+    color: #ffe3a0;
+    font: 700 28px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    transition: transform 0.15s ease-out;
+  }
+  #counter canvas { position: static; width: 48px; height: 36px; }
+  #counter.bump { transform: scale(1.2); }
+  #counter.party { color: #fff; background: rgba(224, 80, 143, 0.7); }
 </style>
 </head>
 <body>
 <canvas id="scene"></canvas>
+<div id="counter" role="status" aria-label="Jumps"><canvas id="counter-icon" width="96" height="72"></canvas><span id="count">0</span></div>
 
 <script>
 (() => {
@@ -205,6 +225,23 @@
     osc.start(t); osc.stop(t + 0.16);
   }
 
+  // Little rising fanfare for the party
+  function fanfare() {
+    if (!audio) return;
+    const t0 = audio.currentTime;
+    [523, 659, 784, 1047, 784, 1047].forEach((f, i) => {
+      const t = t0 + i * 0.11 + (i > 3 ? 0.08 : 0);
+      const osc = audio.createOscillator(), g = audio.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.14, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (i === 5 ? 0.6 : 0.2));
+      osc.connect(g).connect(audio.destination);
+      osc.start(t); osc.stop(t + 0.65);
+    });
+  }
+
   // ---------- Dolphins ----------
   const SKINS = [
     { top: '#8a5bd8', belly: '#e2cffa', fin: '#6f43bd' },
@@ -260,15 +297,113 @@
     c.restore();
   }
 
+  // small dolphin next to the jump counter
+  (() => {
+    const ic = document.getElementById('counter-icon').getContext('2d');
+    ic.translate(48, 40); ic.rotate(-0.25); ic.scale(0.34, 0.34);
+    drawDolphin(ic, SKINS[1], 0);
+  })();
+
   const dolphins = [];
   const peeks = [];     // dolphins popping their heads out of the water
+  const confetti = [];  // party confetti
+
+  // ---------- Jump counter and party ----------
+  const PARTY_AT = 20;      // jumps needed for a party
+  const PARTY_LENGTH = 3;   // seconds
+  let jumps = 0;
+  let party = null;         // { t, nextLeap } while a party is on
+  const counterEl = document.getElementById('counter');
+  const countEl = document.getElementById('count');
+
+  function showCount() {
+    countEl.textContent = jumps;
+    counterEl.classList.remove('bump');
+    void counterEl.offsetWidth;   // restart the bump animation
+    counterEl.classList.add('bump');
+    setTimeout(() => counterEl.classList.remove('bump'), 150);
+  }
+
+  function addConfetti(n, fromTop) {
+    const colours = ['#ffd27a', '#ff9ad5', '#ffffff', '#c9a5ff', '#ffb15a', '#7ee0c3', '#ff6f91'];
+    for (let i = 0; i < n; i++) {
+      confetti.push({
+        x: Math.random() * W,
+        y: fromTop ? -20 - Math.random() * H * 0.3 : H * 0.3 + (Math.random() - 0.5) * H * 0.2,
+        vx: (Math.random() - 0.5) * 3, vy: fromTop ? 1 + Math.random() * 2 : -4 - Math.random() * 5,
+        w: 6 + Math.random() * 7, h: 10 + Math.random() * 10,
+        rot: Math.random() * 6.3, vr: (Math.random() - 0.5) * 0.3,
+        sway: Math.random() * 6.3, col: colours[i % colours.length],
+      });
+    }
+  }
+
+  function startParty() {
+    party = { t: 0, nextLeap: 0 };
+    counterEl.classList.add('party');
+    addConfetti(140, true);
+    addConfetti(60, false);
+    fanfare();
+    if (navigator.vibrate) navigator.vibrate([40, 60, 40, 60, 80]);
+  }
+
+  function updateParty(dt) {
+    party.t += dt;
+    party.nextLeap -= dt;
+    // a dolphin leaps every 0.12 seconds, all along the sea
+    if (party.t < PARTY_LENGTH - 0.6 && party.nextLeap <= 0) {
+      leap(W * (0.05 + Math.random() * 0.9), size * (0.7 + Math.random() * 1.1), true);
+      party.nextLeap = 0.12;
+    }
+    if (party.t < 1.5 && Math.random() < 0.5) addConfetti(3, true);
+    if (party.t >= PARTY_LENGTH) {
+      party = null;
+      jumps = 0;
+      counterEl.classList.remove('party');
+      showCount();
+    }
+  }
+
+  function drawPartyText() {
+    const t = party.t;
+    let a = 1;
+    if (t > PARTY_LENGTH - 0.5) a = Math.max(0, (PARTY_LENGTH - t) / 0.5);
+    // pops in with a little overshoot, then gently pulses
+    const pop = t < 0.35 ? 1 - Math.pow(1 - t / 0.35, 3) * Math.cos(t / 0.35 * 5) : 1;
+    const sc = pop * (1 + Math.sin(t * 8) * 0.04);
+    const fs = Math.min(W * 0.22, H * 0.16);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(W / 2, H * 0.3);
+    ctx.rotate(Math.sin(t * 5) * 0.05);
+    ctx.scale(sc, sc);
+    ctx.font = `900 ${fs}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = fs * 0.12; ctx.strokeStyle = '#3b1d6e';
+    ctx.strokeText('Party!', 0, 0);
+    const g = ctx.createLinearGradient(-fs * 1.5, 0, fs * 1.5, 0);
+    const shift = (t * 120) % 360;
+    g.addColorStop(0, `hsl(${shift + 300}, 95%, 72%)`);
+    g.addColorStop(0.5, `hsl(${shift + 40}, 100%, 72%)`);
+    g.addColorStop(1, `hsl(${shift + 180}, 85%, 72%)`);
+    ctx.fillStyle = g;
+    ctx.fillText('Party!', 0, 0);
+    ctx.restore();
+
+    // one soft flash as the party starts
+    if (t < 0.35) {
+      ctx.fillStyle = `rgba(255,240,220,${0.35 * (1 - t / 0.35)})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
   const drops = [];     // splash droplets
   const sparkles = [];  // tap sparkles
   const ripples = [];   // tap ripples on the water
   let time = 0;
 
   function leap(cx, peak, quiet) {
-    if (dolphins.length >= 7) return;
+    if (dolphins.length >= (party ? 26 : 7)) return false;
     const span = size * (2.6 + Math.random() * 0.6);
     const dir = Math.random() < 0.5 ? -1 : 1;
     const maxPeak = waterY - size * 0.35;
@@ -282,6 +417,7 @@
       pIn: (1 - Math.sqrt(1 - k)) / 2, pOut: (1 + Math.sqrt(1 - k)) / 2,
       inDone: false, outDone: false, quiet: !!quiet,
     });
+    return true;
   }
 
   function dolphinPos(d, p) {
@@ -437,6 +573,8 @@
       nextAuto = 3.5 + Math.random() * 3;
     }
 
+    if (party) updateParty(dt);
+
     drawSky(); drawSeaBack();
 
     // dolphins popping up (behind the front waves too)
@@ -487,6 +625,20 @@
       starPath(ctx, s.r); ctx.fill(); ctx.restore();
     }
 
+    // confetti
+    for (let i = confetti.length - 1; i >= 0; i--) {
+      const c = confetti[i];
+      c.vy = Math.min(c.vy + 9 * dt, 3.5); c.sway += dt * 4;
+      c.x += (c.vx + Math.sin(c.sway) * 1.2) * dt * 60; c.y += c.vy * dt * 60; c.rot += c.vr;
+      if (c.y > H + 30) { confetti.splice(i, 1); continue; }
+      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot);
+      ctx.scale(1, Math.cos(c.sway * 1.5));   // flutters as it turns
+      ctx.fillStyle = c.col; ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+      ctx.restore();
+    }
+
+    if (party) drawPartyText();
+
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(t => { last = t; frame(t); });
@@ -497,7 +649,13 @@
     ensureAudio(); keepAwake();
     const x = ev.clientX, y = ev.clientY;
     // the dolphin leaps up to roughly where she tapped
-    leap(x, waterY - y + size * 0.15, false);
+    const leapt = leap(x, waterY - y + size * 0.15, false);
+    // count the jump (not during a party), and start a party at 20
+    if (leapt && !party) {
+      jumps++;
+      showCount();
+      if (jumps >= PARTY_AT) startParty();
+    }
     sparkleBurst(x, y);
     chirp();
     if (navigator.vibrate) navigator.vibrate(15);
