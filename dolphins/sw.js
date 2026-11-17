@@ -1,6 +1,6 @@
 // Saves the app on the phone so it works with no signal.
 // If you change index.html, bump the version number so phones pick up the new copy.
-const CACHE = 'dolphins-v1';
+const CACHE = 'dolphins-v2';
 const FILES = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

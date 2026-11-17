@@ -1,10 +1,13 @@
 # play.razorsharp.digital
 
-A plain HTML/CSS index page plus small games. No frameworks, no JavaScript on the index page, no tracking.
+A plain HTML/CSS index page plus small games. No frameworks, no JavaScript on the index page, no tracking. It's styled to match razorsharp.digital.
 
 ```
 index.html        the list of games
-style.css         all the styling (colours and fonts are variables at the top)
+style.css         all the styling (colours are variables at the top)
+favicon.svg       Razor Sharp icon, same as the main site
+fonts/            Raleway SemiBold and Bold, same as the main site
+meta/index.png    the preview image shown when the link is shared
 CNAME             tells GitHub Pages the domain
 button/           phone game: The Button
 dolphins/         phone game: Purple Dolphins
@@ -23,11 +26,19 @@ Free GitHub Pages needs a public repo. There's nothing private in these files.
 
 Copy one `<li class="game">` block in `index.html`, paste it below the others, and change the folder, title, sentence and tags. A paper-game template (linking to a PDF) is in a comment in the same place. The grid sorts itself out.
 
-Each phone game is its own folder with its own `index.html`, `manifest.json`, `sw.js` and icons. Copy an existing folder to start a new one.
+The page also has structured data for search engines (JSON-LD, in a `<script type="application/ld+json">` block in the `<head>`). When you add a game, add it to the `itemListElement` list there too, copying an existing entry and changing the position, name, description and addresses.
 
-## Matching razorsharp.digital exactly
+Each phone game is its own folder with its own `index.html`, `manifest.json`, `sw.js` and icons. Copy an existing folder to start a new one. Each game's `index.html` has its own structured data block in the `<head>`: change the name, description and addresses in it to match the new game.
 
-`style.css` uses a neutral dark/light palette based on the site's theme colour. To match the main site exactly, change the values at the top of the file (`:root` and the dark-mode block under it).
+## Matching razorsharp.digital
+
+`style.css` copies the main site's look: Raleway, white and zinc backgrounds, purple links and buttons in light mode, emerald in dark mode, the same text sizes and the same 56rem column. The colours are the exact Tailwind values the main site uses, set at the top of the file (`:root` and the dark-mode block under it).
+
+The header border that appears when you scroll and the sections fading in both work without JavaScript. The Terms, Privacy and Cookies links in the footer open the pages on razorsharp.digital in a new tab.
+
+## Link preview image
+
+`meta/index.png` is the image shown when someone shares the link. It's 1200 by 630 and uses the same layout, font and colours as the preview images on razorsharp.digital. The Open Graph and Twitter tags in the `<head>` of `index.html` point to it. If you change the page title or tagline, make a new image to match.
 
 ## Changing a phone game later
 
