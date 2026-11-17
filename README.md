@@ -1,56 +1,47 @@
-# play.razorsharp.digital
+# Games by Razor Sharp
 
-A plain HTML/CSS index page plus small games. No frameworks, no JavaScript on the index page, no tracking. It's styled to match razorsharp.digital.
+Small games, no nonsense. No adverts, no sign-ups and no tracking.
 
-```
-index.html        the list of games
-style.css         all the styling (colours are variables at the top)
-favicon.svg       Razor Sharp icon, same as the main site
-fonts/            Raleway SemiBold and Bold, same as the main site
-meta/index.png    the preview image shown when the link is shared
-CNAME             tells GitHub Pages the domain
-button/           phone game: The Button
-button/emoji/     the emoji pictures on The Button's buttons (Twemoji, see CREDITS.txt)
-dolphins/         phone game: Purple Dolphins
-```
+Play them at [play.razorsharp.digital](https://play.razorsharp.digital).
 
-## Put it online
+## The games
 
-1. Put everything in this folder at the top level of a new GitHub repo.
-2. Repo Settings > Pages > Deploy from a branch > `main` / root > Save.
-3. Custom domain: `play.razorsharp.digital`, then tick **Enforce HTTPS** once it's available.
-4. At your DNS host, add a CNAME record: name `play`, value `YOUR-USERNAME.github.io`.
+### The Button
 
-Free GitHub Pages needs a public repo. There's nothing private in these files.
+One big button. Press it to hear a happy sound.
 
-## Add a game
+- Swipe up or down to change button. On a computer, scroll with the mouse wheel or trackpad. There are ten to find, including a chick, a frog, a drum, a pig, a sheep, a train and a poo.
+- Each button has its own colour and sound.
+- Press 20 times for a party!
 
-Copy one `<li class="game">` block in `index.html`, paste it below the others, and change the folder, title, sentence and tags. A paper-game template (linking to a PDF) is in a comment in the same place. The grid sorts itself out.
+### Purple Dolphins
 
-The page also has structured data for search engines (JSON-LD, in a `<script type="application/ld+json">` block in the `<head>`). When you add a game, add it to the `itemListElement` list there too, copying an existing entry and changing the position, name, description and addresses.
+A golden-hour sea where purple dolphins live.
 
-Each phone game is its own folder with its own `index.html`, `manifest.json`, `sw.js` and icons. Copy an existing folder to start a new one. Each game's `index.html` has its own structured data block in the `<head>`: change the name, description and addresses in it to match the new game.
+- Tap anywhere and a dolphin leaps up to meet your finger.
+- Every few seconds a dolphin pops its head out of the water to say hello.
+- Make the dolphins jump 20 times for a party!
 
-## Matching razorsharp.digital
+## Getting a game on your home screen
 
-`style.css` copies the main site's look: Raleway, white and zinc backgrounds, purple links and buttons in light mode, emerald in dark mode, the same text sizes and the same 56rem column. The colours are the exact Tailwind values the main site uses, set at the top of the file (`:root` and the dark-mode block under it).
+Once a game is saved, open it from its own icon. It runs full screen, like an app, and works without signal or Wi-Fi. Open it once with signal first so it can save itself.
 
-The header border that appears when you scroll and the sections fading in both work without JavaScript. The Terms, Privacy and Cookies links in the footer open the pages on razorsharp.digital in a new tab.
+**Android:** open the game in Chrome, tap the menu (three dots), then **Add to home screen**, then **Install**.
 
-## Link preview image
+**iPhone and iPad:** open the game in Safari, tap the **Share** button (on newer versions, tap the three dots first), then **Add to Home Screen**, then **Add**.
 
-`meta/index.png` is the image shown when someone shares the link. It's 1200 by 630 and uses the same layout, font and colours as the preview images on razorsharp.digital. The Open Graph and Twitter tags in the `<head>` of `index.html` point to it. If you change the page title or tagline, make a new image to match.
+**Laptop or computer:** open the game in Chrome or Edge and click the install icon at the right of the address bar, then **Install**. On a Mac using Safari, choose File, then **Add to Dock**.
 
-## Changing a phone game later
+## Keeping little hands inside the game
 
-If you edit a game's `index.html`, bump the `CACHE` version at the top of that folder's `sw.js` (e.g. `button-v2`) so phones pick up the new copy.
+Phones can lock themselves to one app, so little fingers can't swipe out of the game.
 
-## Install on a Pixel
+**Android:** switch on **App pinning** in Settings (Security & privacy, then More security & privacy), open the game, then pin it from the recent apps screen. To leave, swipe up and hold, then enter your PIN or fingerprint.
 
-Open the game in Chrome, then menu > Add to Home screen > Install. Open it once with signal so it saves itself, then it works offline.
-
-To keep a toddler inside the game, turn on **App pinning** (Settings > Security & privacy > More security & privacy), open the game, then pin it from the recent apps screen.
+**iPhone and iPad:** switch on **Guided Access** in Settings (Accessibility, then Guided Access) and set a passcode. Open the game, triple-click the side button (or the Home button), then tap **Start**. To leave, triple-click the same button, enter your passcode, then tap **End**.
 
 ## Credits
+
+Made by [Razor Sharp](https://www.razorsharp.digital).
 
 The emoji pictures in The Button are from [Twemoji](https://github.com/jdecked/twemoji), licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/). Copyright Twitter, Inc and other contributors.
