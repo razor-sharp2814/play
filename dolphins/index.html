@@ -177,6 +177,34 @@
     src.start(t); src.stop(t + 0.5);
   }
 
+  // Small, soft "plop" for a dolphin popping its head up: a short burst of
+  // splashy noise with a gentle falling bloop underneath
+  function plopSound(vol) {
+    if (!audio || !noiseBuf) return;
+    const t = audio.currentTime;
+    const src = audio.createBufferSource(); src.buffer = noiseBuf;
+    const f = audio.createBiquadFilter(); f.type = 'bandpass';
+    f.frequency.setValueAtTime(2600, t);
+    f.frequency.exponentialRampToValueAtTime(900, t + 0.2);
+    f.Q.value = 1.2;
+    const g = audio.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    src.connect(f).connect(g).connect(audio.destination);
+    src.start(t); src.stop(t + 0.25);
+
+    const osc = audio.createOscillator(), og = audio.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(520, t);
+    osc.frequency.exponentialRampToValueAtTime(180, t + 0.12);
+    og.gain.setValueAtTime(0.0001, t);
+    og.gain.exponentialRampToValueAtTime(vol * 0.8, t + 0.01);
+    og.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+    osc.connect(og).connect(audio.destination);
+    osc.start(t); osc.stop(t + 0.16);
+  }
+
   // ---------- Dolphins ----------
   const SKINS = [
     { top: '#8a5bd8', belly: '#e2cffa', fin: '#6f43bd' },
@@ -233,6 +261,7 @@
   }
 
   const dolphins = [];
+  const peeks = [];     // dolphins popping their heads out of the water
   const drops = [];     // splash droplets
   const sparkles = [];  // tap sparkles
   const ripples = [];   // tap ripples on the water
@@ -270,6 +299,53 @@
     }
     ripples.push({ x, y: y + 4, r: 6, life: 1 });
     splashSound(quiet ? 0.05 : (big ? 0.2 : 0.12));
+  }
+
+  // A dolphin pops its head up, has a look around, then sinks back down
+  function peek() {
+    if (peeks.length) return;
+    peeks.push({
+      x: W * (0.15 + Math.random() * 0.7), t: 0, dur: 3.2,
+      dir: Math.random() < 0.5 ? -1 : 1,
+      skin: SKINS[Math.floor(Math.random() * SKINS.length)],
+      up: false, down: false,
+    });
+  }
+
+  function smallSplash(x, y, vol) {
+    for (let i = 0; i < 9; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.3;
+      const sp = 2 + Math.random() * 3;
+      drops.push({ x: x + (Math.random() - 0.5) * 20, y, vx: Math.cos(a) * sp * 0.8, vy: Math.sin(a) * sp, r: 1.5 + Math.random() * 2.5, life: 0.8 });
+    }
+    ripples.push({ x, y: y + 4, r: 5, life: 0.8 });
+    if (vol) plopSound(vol);
+  }
+
+  function drawPeek(pk, dt) {
+    pk.t += dt;
+    const t = pk.t, rise = 0.45, sink = 0.6;
+    const ease = v => 1 - (1 - v) * (1 - v);
+    let r = 1;
+    if (t < rise) r = ease(t / rise);
+    else if (t > pk.dur - sink) r = 1 - ease((t - (pk.dur - sink)) / sink);
+    r = Math.max(0, r);
+
+    if (!pk.up && t >= 0.12) { pk.up = true; smallSplash(pk.x, waterY, 0.09); }
+    if (!pk.down && t >= pk.dur - 0.25) { pk.down = true; smallSplash(pk.x, waterY, 0.04); }
+
+    const s = size / 226;
+    const ang = -1.2 + Math.sin(t * 2.5) * 0.08;     // tilted up, with a little nod
+    const bob = Math.sin(t * 4) * 3 * r;              // gentle bobbing while up
+    const depth = (160 - 125 * r - bob) * 0.93 * s;    // how far the body sits below the surface
+    ctx.save();
+    // hide the rest of the body, cutting it off under the front waves so the
+    // edge doesn't show
+    ctx.beginPath(); ctx.rect(0, 0, W, waterY + H * 0.035); ctx.clip();
+    ctx.translate(pk.x - pk.dir * 25 * s, waterY + depth);
+    ctx.scale(pk.dir, 1); ctx.rotate(ang); ctx.scale(s, s);
+    drawDolphin(ctx, pk.skin, 0);
+    ctx.restore();
   }
 
   function sparkleBurst(x, y) {
@@ -353,14 +429,21 @@
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
 
-    // gentle ambient leaps so it always feels alive
+    // every few seconds a dolphin pops its head up, so something is always
+    // happening. Dolphins only leap when the screen is tapped.
     nextAuto -= dt;
     if (nextAuto <= 0) {
-      if (dolphins.length < 2) leap(W * (0.2 + Math.random() * 0.6), size * (0.6 + Math.random() * 0.7), true);
+      peek();
       nextAuto = 3.5 + Math.random() * 3;
     }
 
     drawSky(); drawSeaBack();
+
+    // dolphins popping up (behind the front waves too)
+    for (let i = peeks.length - 1; i >= 0; i--) {
+      drawPeek(peeks[i], dt);
+      if (peeks[i].t >= peeks[i].dur) peeks.splice(i, 1);
+    }
 
     // dolphins (behind the front waves, so they rise out of the water)
     for (let i = dolphins.length - 1; i >= 0; i--) {
