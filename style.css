@@ -134,11 +134,15 @@ a:hover, a:active, a:focus-visible { color: var(--accent); }
 .site-header {
   position: relative;
   z-index: 10;
-  background: var(--background);
-  border-bottom: 2px solid transparent;
   margin-bottom: 6rem;
   font-size: 1rem;
   line-height: 1;
+}
+
+/* The border sits on this inner bar so it can react to the header sticking */
+.header-bar {
+  background: var(--background);
+  border-bottom: 2px solid transparent;
   transition: border-color 0.4s;
 }
 
@@ -155,21 +159,38 @@ a:hover, a:active, a:focus-visible { color: var(--accent); }
   .site-header { margin-bottom: 12rem; }
 }
 
+/* Sticky header with a border that fades in as soon as you scroll, like the
+   main site. */
 @media (min-width: 48rem) {
-  .site-header { position: sticky; top: 0; }
+  .site-header {
+    position: sticky;
+    top: 0;
+    container-type: scroll-state;
+  }
 
-  /* Border appears once you scroll, like the main site. Browsers without
-     scroll-driven animations just show no border, which is fine. */
-  @supports (animation-timeline: scroll()) {
-    .site-header {
-      animation: header-border linear both;
-      animation-timeline: scroll();
-      animation-range: 0 1px;
+  /* Newer browsers know when the header is stuck to the top, so the border
+     fades in over 0.4 seconds, exactly as on the main site */
+  @container scroll-state(stuck: top) {
+    .header-bar { border-color: var(--line); }
+  }
+
+  /* Other browsers: tie the border to the scroll position instead, so it's
+     fully shown within the first couple of pixels of scrolling. Browsers with
+     neither feature simply show no border. */
+  @supports not (container-type: scroll-state) {
+    @supports (animation-timeline: scroll()) {
+      .header-bar {
+        animation: header-border linear both;
+        animation-timeline: scroll();
+      }
     }
   }
 }
 
-@keyframes header-border { to { border-color: var(--line); } }
+@keyframes header-border {
+  0% { border-color: transparent; }
+  0.2%, 100% { border-color: var(--line); }
+}
 
 /* ---------- Main and sections ---------- */
 main {
