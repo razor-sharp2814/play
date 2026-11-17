@@ -1,0 +1,221 @@
+/* play.razorsharp.digital
+   Plain CSS, no frameworks, no external fonts or requests.
+
+   To match razorsharp.digital exactly, change the values in :root below
+   (and the dark-mode block under it). Nothing else needs touching. */
+
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #18181b;
+  --muted: #52525b;
+  --line: #e4e4e7;
+  --accent: #18181b;      /* buttons, focus ring, links on hover */
+  --accent-text: #fafafa; /* text sitting on the accent colour */
+
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --radius: 0.75rem;
+  --width: 60rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #18181b;
+    --surface: #27272a;
+    --text: #fafafa;
+    --muted: #a1a1aa;
+    --line: #3f3f46;
+    --accent: #fafafa;
+    --accent-text: #18181b;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+img { max-width: 100%; height: auto; display: block; }
+
+a { color: inherit; text-underline-offset: 0.2em; }
+a:hover { text-decoration-thickness: 2px; }
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--width);
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* ---------- Skip link ---------- */
+.skip {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  background: var(--accent);
+  color: var(--accent-text);
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius);
+  z-index: 10;
+}
+.skip:focus { top: 1rem; }
+
+/* ---------- Header ---------- */
+.site-header { border-bottom: 1px solid var(--line); }
+.site-header .wrap {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 1.1rem;
+  padding-bottom: 1.1rem;
+}
+.brand {
+  font-weight: 700;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+.brand:hover { text-decoration: underline; }
+.section-label {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+/* ---------- Main ---------- */
+main { flex: 1; padding-bottom: 3rem; }
+
+.intro { padding: 3rem 0 2rem; }
+.intro h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+.intro p {
+  margin: 0;
+  max-width: 38rem;
+  color: var(--muted);
+  font-size: 1.15rem;
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- Game list ----------
+   Add a game by copying one <li class="game"> in index.html.
+   The grid fills in by itself, so there's nothing to change here. */
+.games {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: 1rem;
+}
+
+.game {
+  position: relative;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.game:hover { border-color: var(--accent); }
+.game:focus-within { border-color: var(--accent); }
+
+.game img {
+  flex: none;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 1rem;
+}
+
+.game h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.2rem;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+/* Makes the whole card clickable */
+.game h3 a { text-decoration: none; }
+.game h3 a::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius); }
+.game h3 a:hover { text-decoration: underline; }
+
+.game p { margin: 0; color: var(--muted); font-size: 0.975rem; line-height: 1.5; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem !important; }
+.tag {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ---------- Help ---------- */
+.help { margin-top: 3rem; }
+.help details {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-bottom: 0.75rem;
+}
+.help summary {
+  cursor: pointer;
+  padding: 0.9rem 1rem;
+  font-weight: 600;
+  list-style-position: inside;
+}
+.help details[open] summary { border-bottom: 1px solid var(--line); }
+.help .body { padding: 0.9rem 1rem 1rem; color: var(--muted); }
+.help .body p { margin: 0 0 0.75rem; }
+.help .body p:last-child { margin-bottom: 0; }
+.help ol { margin: 0; padding-left: 1.25rem; }
+.help li { margin-bottom: 0.35rem; }
+
+/* ---------- Footer ---------- */
+.site-footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 0.95rem; }
+.site-footer .wrap { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.site-footer p { margin: 0 0 0.25rem; }
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
