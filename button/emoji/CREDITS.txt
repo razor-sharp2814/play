@@ -1,0 +1,7 @@
+Emoji graphics from Twemoji (https://github.com/jdecked/twemoji), version 15.1.0.
+Copyright Twitter, Inc and other contributors.
+Licensed under CC-BY 4.0: https://creativecommons.org/licenses/by/4.0/
+
+To add another emoji, find its code (for example 1f437 for the pig face) and
+download https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/<code>.svg
+into this folder. Then add it to MODES in ../index.html and to FILES in ../sw.js.

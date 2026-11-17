@@ -16,7 +16,7 @@
       "@type": "VideoGame",
       "@id": "https://play.razorsharp.digital/button/#game",
       "name": "The Button",
-      "description": "One big button. Press it for a new colour, a note and a bit of confetti.",
+      "description": "One big button with a happy sound. Swipe up or down for a poo, a frog, a drum and more, and keep pressing for a party.",
       "url": "https://play.razorsharp.digital/button/",
       "image": "https://play.razorsharp.digital/button/icon-512.png",
       "applicationCategory": "GameApplication",
@@ -112,17 +112,76 @@
     transform: translateY(0);
     transition: transform 0.06s ease, box-shadow 0.06s ease;
     touch-action: none;
+    display: flex; align-items: center; justify-content: center;
   }
+  /* Emoji on the button (none for the classic red button). These are SVG
+     images rather than emoji text, so they stay sharp at any size. */
+  #face {
+    width: calc(var(--size) * 0.5); height: calc(var(--size) * 0.5);
+    pointer-events: none;
+    -webkit-user-drag: none;
+    transition: transform 0.08s ease;
+    /* sticker outline in a darker shade of the button's own colour, and a soft
+       shadow, so the picture stands out even on a button of the same colour */
+    --outline: #fff;
+    --o: calc(var(--size) * 0.009);
+    filter: drop-shadow(var(--o) 0 0 var(--outline)) drop-shadow(calc(var(--o) * -1) 0 0 var(--outline))
+            drop-shadow(0 var(--o) 0 var(--outline)) drop-shadow(0 calc(var(--o) * -1) 0 var(--outline))
+            drop-shadow(0 calc(var(--o) * 1.5) calc(var(--o) * 1.5) rgba(0, 0, 0, 0.3));
+  }
+  #face[hidden] { display: none; }
+  #button.down #face { transform: scale(0.9); }
+
+  /* Dots on the right showing which button you're on */
+  #modes {
+    position: fixed;
+    right: calc(env(safe-area-inset-right, 0px) + 14px);
+    top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 12px;
+    pointer-events: none;
+  }
+  #modes span {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.45);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);   /* still visible on light backgrounds */
+    transition: transform 0.2s, background-color 0.2s;
+  }
+  #modes span.on { background: #fff; transform: scale(1.5); }
   #button.down {
     transform: translateY(calc(var(--size) * 0.045));
     box-shadow: 0 calc(var(--size) * 0.015) 0 var(--edge),
                 0 calc(var(--size) * 0.03) calc(var(--size) * 0.04) rgba(0,0,0,0.35);
   }
   canvas#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  /* Press counter, top left (kept clear of the notch) */
+  #counter {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    left: calc(env(safe-area-inset-left, 0px) + 14px);
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 16px 6px 8px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.22);
+    color: #fff;
+    font: 700 28px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    transition: transform 0.15s ease-out, background-color 0.3s;
+  }
+  #counter .dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ff8a8a 0%, #ff3b3b 45%, #c41212 100%);
+    box-shadow: 0 3px 0 #8e0b0b;
+  }
+  #counter.bump { transform: scale(1.2); }
+  #counter.party { background: rgba(255, 255, 255, 0.3); }
 </style>
 </head>
 <body>
-<button id="button" aria-label="Press me"></button>
+<button id="button" aria-label="Press me"><img id="face" alt="" draggable="false" hidden></button>
+<div id="modes" aria-hidden="true"></div>
+<div id="counter" role="status" aria-label="Presses"><span class="dot"></span><span id="count">0</span></div>
 <canvas id="fx"></canvas>
 
 <script>
@@ -145,6 +204,30 @@
     ['#ffc48a', '#ff8c1a', '#c45e00', '#8a4100', 'orange'],
   ];
   const NOTES = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25]; // C major pentatonic-ish, always sounds nice
+  // Swipe up or down to change button. Each one has its own colours, emoji
+  // and sound. To add one, copy a line and change it.
+  // icon: an SVG in the emoji folder ('' for none). The emoji in the comment
+  //       is just to show which picture it is.
+  // button colours are [light, mid, dark, edge].
+  const MODES = [
+    { name: 'red',   icon: '',      bg: '#2a6df4', button: ['#ff8a8a', '#ff3b3b', '#c41212', '#8e0b0b'], sound: () => playNote() },
+    { name: 'chick', icon: '1f425', bg: '#5ab8ff', button: ['#ffe27a', '#ffc400', '#d19a00', '#8f6a00'], sound: () => cheep() },   // 🐥
+    { name: 'frog',  icon: '1f438', bg: '#1e6091', button: ['#8affc1', '#19d27a', '#0a9a55', '#066b3a'], sound: () => ribbit() },  // 🐸
+    { name: 'drop',  icon: '1f4a7', bg: '#ffd166', button: ['#9ad7ff', '#2aa8ff', '#0b6fc4', '#084c88'], sound: () => bloop() },   // 💧
+    { name: 'magic', icon: '2728',  bg: '#1b1b3a', button: ['#d3b0ff', '#9a5cff', '#6428c4', '#451a88'], sound: () => twinkle() }, // ✨
+    { name: 'drum',  icon: '1f941', bg: '#3d348b', button: ['#ffc48a', '#ff8c1a', '#c45e00', '#8a4100'], sound: () => boom() },    // 🥁
+    { name: 'pig',   icon: '1f437', bg: '#7b5e57', button: ['#ffd1e6', '#ff8cc0', '#d9558f', '#9e3365'], sound: () => oink() },    // 🐷
+    { name: 'sheep', icon: '1f411', bg: '#2d6a4f', button: ['#ffffff', '#f2f2f2', '#cfcfcf', '#9a9a9a'], sound: () => baa() },     // 🐑
+    { name: 'train', icon: '1f682', bg: '#e63946', button: ['#e6e6e6', '#a3a3a3', '#6e6e6e', '#454545'], sound: () => chooChoo() }, // 🚂
+    { name: 'poo',   icon: '1f4a9', bg: '#7cc66a', button: ['#c08a5c', '#8b5a2b', '#5e3a17', '#3f260e'], sound: () => plop() },   // 💩
+  ];
+  // Colour of the outline around each picture, picked from the button's own
+  // colours. A button can set its own with outline: '#...' instead.
+  const OUTLINE = b => b[2];
+  const PARTY_AT = 20;      // presses needed for a party
+  const PARTY_LENGTH = 3;   // seconds
+  // Normal play keeps each button's own colours. The colour changes and
+  // confetti only happen during a party.
   // -------------------------------------------------------
 
   const btn = document.getElementById('button');
@@ -175,10 +258,15 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
 
   // ---------- Sound (made from scratch, so no files and no internet needed) ----------
-  let audio = null;
+  let audio = null, noiseBuf = null;
   function ensureAudio() {
     if (!audio) {
-      try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
+      try {
+        audio = new (window.AudioContext || window.webkitAudioContext)();
+        noiseBuf = audio.createBuffer(1, audio.sampleRate * 0.6, audio.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      } catch (_) {}
     }
     if (audio && audio.state === 'suspended') audio.resume();
   }
@@ -201,7 +289,189 @@
     osc.start(t); osc.stop(t + 0.5);
   }
 
-  // ---------- Colour changes ----------
+  // Small helpers for the sounds below
+  function tone(type, f0, f1, start, len, vol, dest) {
+    const t = audio.currentTime + start;
+    const osc = audio.createOscillator(), g = audio.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(f0, t);
+    osc.frequency.exponentialRampToValueAtTime(f1, t + len);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.01, len / 4));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    osc.connect(g).connect(dest || audio.destination);
+    osc.start(t); osc.stop(t + len + 0.02);
+    return osc;
+  }
+  function noise(start, len, vol, filterType, f0, f1, q) {
+    if (!noiseBuf) return;
+    const t = audio.currentTime + start;
+    const src = audio.createBufferSource(); src.buffer = noiseBuf;
+    const f = audio.createBiquadFilter(); f.type = filterType; f.Q.value = q || 1;
+    f.frequency.setValueAtTime(f0, t);
+    f.frequency.exponentialRampToValueAtTime(f1, t + len);
+    const g = audio.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    src.connect(f).connect(g).connect(audio.destination);
+    src.start(t); src.stop(t + len + 0.02);
+  }
+  const vary = (n, amt) => n * (1 + (Math.random() - 0.5) * amt);
+
+  // Poo: a squelchy cartoon "plop", then a little "plip"
+  function plop() {
+    if (!audio) return;
+    const f = vary(620, 0.25);
+    tone('sine', f, f * 0.22, 0, 0.18, 0.55);                // the falling "plop"
+    noise(0, 0.12, 0.18, 'lowpass', 1200, 250, 2);           // wet squelch
+    tone('sine', f * 1.6, f * 0.9, 0.2, 0.07, 0.15);         // little "plip" after
+  }
+
+  // Chick: two quick high cheeps
+  function cheep() {
+    if (!audio) return;
+    const f = vary(2300, 0.2);
+    tone('sine', f, f * 1.5, 0, 0.08, 0.2);
+    tone('sine', f * 1.05, f * 1.6, 0.12, 0.09, 0.2);
+  }
+
+  // Frog: a low, rattly "rib-bit"
+  function ribbit() {
+    if (!audio) return;
+    [[0, vary(170, 0.15)], [0.16, vary(210, 0.15)]].forEach(([start, f]) => {
+      const t = audio.currentTime + start, len = 0.12;
+      const osc = audio.createOscillator(); osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(f, t);
+      osc.frequency.linearRampToValueAtTime(f * 0.85, t + len);
+      const am = audio.createOscillator(); am.type = 'square'; am.frequency.value = 45;
+      const amGain = audio.createGain(); amGain.gain.value = 0.5;
+      const rattle = audio.createGain(); rattle.gain.value = 0.5;
+      am.connect(amGain).connect(rattle.gain);
+      const bp = audio.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 600; bp.Q.value = 1.5;
+      const g = audio.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.7, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      osc.connect(rattle).connect(bp).connect(g).connect(audio.destination);
+      osc.start(t); am.start(t); osc.stop(t + len + 0.02); am.stop(t + len + 0.02);
+    });
+  }
+
+  // Water drop: a quick rising "bloop"
+  function bloop() {
+    if (!audio) return;
+    const f = vary(350, 0.4);
+    tone('sine', f, f * 3.5, 0, 0.13, 0.4);
+  }
+
+  // Magic: a sparkly run of high bell notes
+  function twinkle() {
+    if (!audio) return;
+    const bells = [1318.5, 1568, 1760, 2093, 2349.3, 2637];
+    const start = Math.floor(Math.random() * 3);
+    for (let i = 0; i < 4; i++) {
+      const f = bells[start + i];
+      tone('sine', f, f * 1.001, i * 0.07, 0.7, 0.1);
+      tone('sine', f * 2, f * 2.002, i * 0.07, 0.3, 0.03);
+    }
+  }
+
+  // Drum: a deep "boom", with a few different drums so it can make a rhythm
+  function boom() {
+    if (!audio) return;
+    const kind = Math.floor(Math.random() * 3);
+    if (kind === 0) { tone('sine', 150, 45, 0, 0.35, 0.9); }
+    else if (kind === 1) { tone('sine', 220, 110, 0, 0.25, 0.6); noise(0, 0.12, 0.08, 'lowpass', 2000, 600); }
+    else { tone('triangle', 200, 120, 0, 0.12, 0.3); noise(0, 0.18, 0.35, 'highpass', 1800, 1200, 0.7); }
+  }
+
+  // Pig: a nasal, snorty "oink oink"
+  function oink() {
+    if (!audio) return;
+    const base = vary(300, 0.2);
+    [[0, base], [0.2, base * 1.12]].forEach(([start, f]) => {
+      const t = audio.currentTime + start, len = 0.14;
+      const osc = audio.createOscillator(); osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(f, t);
+      osc.frequency.exponentialRampToValueAtTime(f * 0.7, t + len);
+      const am = audio.createOscillator(); am.type = 'square'; am.frequency.value = 70;
+      const amGain = audio.createGain(); amGain.gain.value = 0.35;
+      const snort = audio.createGain(); snort.gain.value = 0.65;
+      am.connect(amGain).connect(snort.gain);
+      const nose = audio.createBiquadFilter(); nose.type = 'bandpass'; nose.frequency.value = 1000; nose.Q.value = 3;
+      const g = audio.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.9, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      osc.connect(snort).connect(nose).connect(g).connect(audio.destination);
+      osc.start(t); am.start(t); osc.stop(t + len + 0.02); am.stop(t + len + 0.02);
+      noise(start, 0.08, 0.04, 'bandpass', 1400, 800, 2);
+    });
+  }
+
+  // Sheep: a wobbly "baa"
+  function baa() {
+    if (!audio) return;
+    const t = audio.currentTime, len = vary(0.65, 0.2), f = vary(290, 0.15);
+    const osc = audio.createOscillator(); osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(f, t);
+    osc.frequency.linearRampToValueAtTime(f * 0.9, t + len);
+    const vib = audio.createOscillator(); vib.frequency.value = 7;     // the bleat wobble
+    const vibGain = audio.createGain(); vibGain.gain.value = f * 0.06;
+    vib.connect(vibGain).connect(osc.frequency);
+    const wob = audio.createGain(); wob.gain.value = 0.7;
+    const am = audio.createOscillator(); am.frequency.value = 7;
+    const amGain = audio.createGain(); amGain.gain.value = 0.3;
+    am.connect(amGain).connect(wob.gain);
+    const out = audio.createGain();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.exponentialRampToValueAtTime(0.5, t + 0.05);
+    out.gain.setValueAtTime(0.5, t + len * 0.7);
+    out.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    osc.connect(wob);
+    // two vowel shapes give the "aa" sound
+    [[800, 5, 1], [1200, 6, 0.6]].forEach(([freq, q, level]) => {
+      const bp = audio.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = q;
+      const lv = audio.createGain(); lv.gain.value = level;
+      wob.connect(bp).connect(lv).connect(out);
+    });
+    out.connect(audio.destination);
+    [osc, vib, am].forEach(o => { o.start(t); o.stop(t + len + 0.05); });
+  }
+
+  // Train: "choo choo" steam puffs, then a toot on the whistle
+  function chooChoo() {
+    if (!audio) return;
+    noise(0, 0.2, 0.5, 'bandpass', 1500, 700, 1.2);
+    noise(0.24, 0.2, 0.5, 'bandpass', 1500, 700, 1.2);
+    [587.3, 740, 880].forEach(f => tone('triangle', f, f * 0.995, 0.5, 0.45, 0.07));
+  }
+
+  // Soft whoosh when swiping to a new button
+  function whoosh(up) {
+    if (!audio) return;
+    noise(0, 0.25, 0.12, 'bandpass', up ? 500 : 2500, up ? 2500 : 500, 1.5);
+  }
+
+  // Little rising fanfare for the party
+  function fanfare() {
+    if (!audio) return;
+    const t0 = audio.currentTime;
+    [523, 659, 784, 1047, 784, 1047].forEach((f, i) => {
+      const t = t0 + i * 0.11 + (i > 3 ? 0.08 : 0);
+      const osc = audio.createOscillator(), g = audio.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.16, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (i === 5 ? 0.6 : 0.2));
+      osc.connect(g).connect(audio.destination);
+      osc.start(t); osc.stop(t + 0.65);
+    });
+  }
+
+  // ---------- Colour changes (party only) ----------
   let bgIndex = 0, btnIndex = 0;
   function changeColours() {
     let next;
@@ -217,6 +487,125 @@
     btn.style.background = `radial-gradient(circle at 35% 30%, ${l} 0%, ${m} 45%, ${d} 100%)`;
     btn.style.setProperty('--edge', e);
     document.querySelector('meta[name=theme-color]').setAttribute('content', bg);
+  }
+
+  // ---------- Modes (swipe up or down) ----------
+  const faceEl = document.getElementById('face');
+  const dotsEl = document.getElementById('modes');
+  const counterDot = document.querySelector('#counter .dot');
+  MODES.forEach(() => dotsEl.appendChild(document.createElement('span')));
+
+  let mode = 0;
+  try { mode = Math.max(0, Math.min(MODES.length - 1, parseInt(localStorage.getItem('button-mode'), 10) || 0)); } catch (_) {}
+
+  const gradient = ([l, m, d]) => `radial-gradient(circle at 35% 30%, ${l} 0%, ${m} 45%, ${d} 100%)`;
+
+  // Show the current mode's own colours and emoji
+  function resetColours() {
+    const m = MODES[mode];
+    document.body.style.backgroundColor = m.bg;
+    btn.style.background = gradient(m.button);
+    btn.style.setProperty('--edge', m.button[3]);
+    faceEl.style.setProperty('--outline', m.outline || OUTLINE(m.button));
+    if (m.icon) { faceEl.src = `emoji/${m.icon}.svg`; faceEl.hidden = false; }
+    else { faceEl.removeAttribute('src'); faceEl.hidden = true; }
+    counterDot.style.background = gradient(m.button);
+    counterDot.style.boxShadow = `0 3px 0 ${m.button[3]}`;
+    [...dotsEl.children].forEach((d, i) => d.classList.toggle('on', i === mode));
+    document.querySelector('meta[name=theme-color]').setAttribute('content', m.bg);
+  }
+
+  let switching = false;
+  function changeMode(step) {
+    if (party || switching) return;
+    switching = true;
+    mode = (mode + step + MODES.length) % MODES.length;
+    try { localStorage.setItem('button-mode', mode); } catch (_) {}
+    whoosh(step > 0);
+    if (navigator.vibrate) navigator.vibrate(10);
+    // old button slides out the way you swiped, the new one slides in after it
+    const out = step > 0 ? '-110vh' : '110vh', inFrom = step > 0 ? '110vh' : '-110vh';
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !btn.animate) { resetColours(); switching = false; return; }
+    btn.animate([{ transform: 'translateY(0)' }, { transform: `translateY(${out})` }],
+      { duration: 160, easing: 'ease-in' }).onfinish = () => {
+      resetColours();
+      btn.animate([{ transform: `translateY(${inFrom})` }, { transform: 'translateY(0)' }],
+        { duration: 260, easing: 'cubic-bezier(0.2, 0.9, 0.3, 1.15)' }).onfinish = () => { switching = false; };
+    };
+  }
+
+  resetColours();
+
+  // ---------- Press counter and party ----------
+  let presses = 0;
+  let party = null;   // { t, nextColour, nextBurst } while a party is on
+  const counterEl = document.getElementById('counter');
+  const countEl = document.getElementById('count');
+
+  function showCount() {
+    countEl.textContent = presses;
+    counterEl.classList.remove('bump');
+    void counterEl.offsetWidth;   // restart the bump animation
+    counterEl.classList.add('bump');
+    setTimeout(() => counterEl.classList.remove('bump'), 150);
+  }
+
+  function startParty() {
+    party = { t: 0, nextColour: 0, nextBurst: 0 };
+    counterEl.classList.add('party');
+    for (let i = 0; i < 6; i++) burst(W * (0.1 + Math.random() * 0.8), H * (0.1 + Math.random() * 0.5));
+    fanfare();
+    if (navigator.vibrate) navigator.vibrate([40, 60, 40, 60, 80]);
+  }
+
+  function updateParty(dt) {
+    party.t += dt;
+    party.nextColour -= dt;
+    party.nextBurst -= dt;
+    // colours change twice a second (gently, not a flicker)
+    if (party.t < PARTY_LENGTH - 0.4 && party.nextColour <= 0) { changeColours(); party.nextColour = 0.5; }
+    // confetti pops all over the screen
+    if (party.t < PARTY_LENGTH - 0.6 && party.nextBurst <= 0) {
+      burst(W * (0.05 + Math.random() * 0.9), H * (0.05 + Math.random() * 0.7));
+      party.nextBurst = 0.13;
+    }
+    if (party.t >= PARTY_LENGTH) {
+      party = null;
+      presses = 0;
+      counterEl.classList.remove('party');
+      resetColours();
+      showCount();
+    }
+  }
+
+  function drawPartyText() {
+    const t = party.t;
+    let a = 1;
+    if (t > PARTY_LENGTH - 0.5) a = Math.max(0, (PARTY_LENGTH - t) / 0.5);
+    // pops in with a little overshoot, then gently pulses
+    const pop = t < 0.35 ? 1 - Math.pow(1 - t / 0.35, 3) * Math.cos(t / 0.35 * 5) : 1;
+    const sc = pop * (1 + Math.sin(t * 8) * 0.04);
+    const fs = Math.min(W * 0.22, H * 0.14);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(W / 2, H * 0.14);
+    ctx.rotate(Math.sin(t * 5) * 0.05);
+    ctx.scale(sc, sc);
+    ctx.font = `900 ${fs}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = fs * 0.12; ctx.strokeStyle = '#1b1b3a';
+    ctx.strokeText('Party!', 0, 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('Party!', 0, 0);
+    ctx.restore();
+
+    // one soft flash as the party starts
+    if (t < 0.35) {
+      ctx.fillStyle = `rgba(255,255,255,${0.35 * (1 - t / 0.35)})`;
+      ctx.fillRect(0, 0, W, H);
+    }
   }
 
   // ---------- Confetti ----------
@@ -245,7 +634,10 @@
     }
     c.closePath();
   }
-  function frame() {
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (party) updateParty(dt);
     ctx.clearRect(0, 0, W, H);
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
@@ -260,26 +652,95 @@
       else { star(ctx, p.r * 1.3, 0); ctx.fill(); }
       ctx.restore();
     }
+    if (party) drawPartyText();
     requestAnimationFrame(frame);
   }
-  requestAnimationFrame(frame);
+  requestAnimationFrame(t => { last = t; frame(t); });
 
   // ---------- Pressing ----------
   function press(x, y) {
     ensureAudio(); keepAwake();
     btn.classList.add('down');
-    setTimeout(() => btn.classList.remove('down'), 110);
-    changeColours();
-    playNote();
-    burst(x, y);
+    setTimeout(() => { if (!pointers.size) btn.classList.remove('down'); }, 110);
+    MODES[mode].sound();
     if (navigator.vibrate) navigator.vibrate(25);
+
+    if (party) {
+      // during a party every press changes colour and throws confetti too
+      changeColours();
+      burst(x, y);
+      return;
+    }
+    presses++;
+    showCount();
+    if (presses >= PARTY_AT) startParty();
   }
 
   // Pointer events handle fingers, palms and several touches at once.
+  // A tap presses the button when the finger lifts (or after a short hold).
+  // Sliding a finger up or down instead swipes to the next button.
+  const SWIPE_DISTANCE = 50;   // pixels
+  const HOLD_TIME = 150;       // ms before a held finger counts as a press
+  const pointers = new Map();
+
+  function firePress(p) {
+    if (p.pressed || p.swiped) return;
+    p.pressed = true;
+    press(p.x, p.y);
+  }
+
   document.addEventListener('pointerdown', ev => {
     ev.preventDefault();
-    press(ev.clientX, ev.clientY);
+    ensureAudio(); keepAwake();
+    btn.classList.add('down');
+    const p = { x: ev.clientX, y: ev.clientY, pressed: false, swiped: false };
+    p.timer = setTimeout(() => firePress(p), HOLD_TIME);
+    pointers.set(ev.pointerId, p);
   });
+
+  document.addEventListener('pointermove', ev => {
+    const p = pointers.get(ev.pointerId);
+    if (!p || p.swiped) return;
+    const dx = ev.clientX - p.x, dy = ev.clientY - p.y;
+    if (Math.abs(dy) > SWIPE_DISTANCE && Math.abs(dy) > Math.abs(dx) * 1.2) {
+      p.swiped = true;
+      clearTimeout(p.timer);
+      btn.classList.remove('down');
+      changeMode(dy < 0 ? 1 : -1);   // swipe up for the next button, down for the last one
+    }
+  });
+
+  function release(ev) {
+    const p = pointers.get(ev.pointerId);
+    if (!p) return;
+    pointers.delete(ev.pointerId);
+    clearTimeout(p.timer);
+    firePress(p);
+    if (!pointers.size) setTimeout(() => { if (!pointers.size) btn.classList.remove('down'); }, 60);
+  }
+  document.addEventListener('pointerup', release);
+  document.addEventListener('pointercancel', release);
+
+  // On a computer, the mouse wheel or a trackpad scroll changes button too.
+  // Scrolling down (like swiping up) goes to the next button. One scroll
+  // gesture moves one button, however long the trackpad keeps gliding.
+  const WHEEL_DISTANCE = 60;   // how far to scroll before changing
+  let wheelTotal = 0, wheelLocked = false, wheelQuiet = null;
+  document.addEventListener('wheel', ev => {
+    ev.preventDefault();
+    if (ev.ctrlKey) return;                       // trackpad pinch-to-zoom
+    const unit = ev.deltaMode === 1 ? 33 : ev.deltaMode === 2 ? H : 1;   // lines or pages to pixels
+    clearTimeout(wheelQuiet);
+    wheelQuiet = setTimeout(() => { wheelLocked = false; wheelTotal = 0; }, 200);
+    if (wheelLocked) return;
+    wheelTotal += ev.deltaY * unit;
+    if (Math.abs(wheelTotal) >= WHEEL_DISTANCE) {
+      ensureAudio();
+      changeMode(wheelTotal > 0 ? 1 : -1);
+      wheelLocked = true;
+      wheelTotal = 0;
+    }
+  }, { passive: false });
 })();
 </script>
 <script>

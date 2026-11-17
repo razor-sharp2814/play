@@ -10,6 +10,7 @@ fonts/            Raleway SemiBold and Bold, same as the main site
 meta/index.png    the preview image shown when the link is shared
 CNAME             tells GitHub Pages the domain
 button/           phone game: The Button
+button/emoji/     the emoji pictures on The Button's buttons (Twemoji, see CREDITS.txt)
 dolphins/         phone game: Purple Dolphins
 ```
 
@@ -49,3 +50,7 @@ If you edit a game's `index.html`, bump the `CACHE` version at the top of that f
 Open the game in Chrome, then menu > Add to Home screen > Install. Open it once with signal so it saves itself, then it works offline.
 
 To keep a toddler inside the game, turn on **App pinning** (Settings > Security & privacy > More security & privacy), open the game, then pin it from the recent apps screen.
+
+## Credits
+
+The emoji pictures in The Button are from [Twemoji](https://github.com/jdecked/twemoji), licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/). Copyright Twitter, Inc and other contributors.
