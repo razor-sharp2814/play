@@ -1,8 +1,10 @@
 /* play.razorsharp.digital
    Plain CSS, no frameworks and no external requests.
-   Matches razorsharp.digital: Raleway, white/zinc, purple accent in light mode
-   and emerald accent in dark mode. Colours are the same values Tailwind uses
-   on the main site. Change them in :root (and the dark block under it). */
+   A playful "sticker" look: chunky outlines, hard shadows and cards tilted
+   like stickers on a dotted page. It keeps the main site's font (Raleway)
+   and colour families (purple, emerald and zinc, the same values Tailwind
+   uses on razorsharp.digital). Change the colours in :root (and the dark
+   block under it). */
 
 @font-face {
   font-family: "Raleway";
@@ -21,18 +23,50 @@
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: oklch(21% 0.006 285.885);       /* zinc-900 */
-  --line: oklch(92% 0.004 286.32);              /* zinc-200 */
-  --tag: oklch(92% 0.004 286.32);               /* zinc-200: tags, like the breadcrumbs */
-  --tag-highlight: oklch(82.7% 0.119 306.383);  /* purple-300: the first tag */
-  --on-tag-highlight: oklch(21% 0.006 285.885); /* zinc-900 */
-  --tag-selection: oklch(49.6% 0.265 301.924);  /* purple-700 */
-  --accent: oklch(55.8% 0.288 302.321);         /* purple-600: links on hover, buttons */
-  --accent-strong: oklch(49.6% 0.265 301.924);  /* purple-700: button hover */
-  --ring: oklch(62.7% 0.265 303.9);             /* purple-500: focus ring */
-  --on-accent: #ffffff;                         /* text sitting on the accent colour */
-  --selection: oklch(76.5% 0.177 163.223);      /* emerald-400 */
+  /* Palette */
+  --purple-50:  oklch(97.7% 0.014 308.299);
+  --purple-100: oklch(94.6% 0.033 307.174);
+  --purple-200: oklch(90.2% 0.063 306.703);
+  --purple-300: oklch(82.7% 0.119 306.383);
+  --purple-400: oklch(71.4% 0.203 305.504);
+  --purple-500: oklch(62.7% 0.265 303.9);
+  --purple-600: oklch(55.8% 0.288 302.321);
+  --purple-700: oklch(49.6% 0.265 301.924);
+  --emerald-300: oklch(84.5% 0.143 164.978);
+  --emerald-400: oklch(76.5% 0.177 163.223);
+  --emerald-900: oklch(37.8% 0.077 168.94);
+  --zinc-100: oklch(96.7% 0.001 286.375);
+  --zinc-700: oklch(37% 0.013 285.805);
+  --zinc-800: oklch(27.4% 0.006 286.033);
+  --zinc-900: oklch(21% 0.006 285.885);
+  --zinc-950: oklch(14.1% 0.005 285.823);
+
+  /* What each colour is used for */
+  --background: var(--purple-50);
+  --dots: var(--purple-200);           /* dotted page pattern */
+  --foreground: var(--zinc-900);
+  --ink: var(--zinc-900);              /* sticker outlines */
+  --card: #ffffff;                     /* cards, headings and questions */
+  --sticker-1: var(--purple-300);      /* first tag, odd cards, chips */
+  --sticker-2: var(--emerald-300);     /* first tag, even cards, chips */
+  --shadow: var(--zinc-900);           /* hard shadow on questions */
+  --shadow-1: var(--zinc-900);         /* hard shadow on odd cards and headings */
+  --shadow-2: var(--zinc-900);         /* hard shadow on even cards */
+  --tag: var(--zinc-100);
+  --open: var(--purple-100);           /* an open question */
+  --accent: var(--purple-600);         /* links on hover */
+  --ring: var(--purple-500);           /* focus ring */
+  --on-accent: #ffffff;
+  --selection: var(--emerald-400);
+  --tag-selection: var(--purple-700);
+
+  /* "Got an idea worth building?" block */
+  --cta: var(--purple-300);
+  --cta-text: var(--zinc-900);
+  --cta-shadow: var(--zinc-900);
+  --button: var(--zinc-900);
+  --on-button: #ffffff;
+  --button-shadow: var(--emerald-400);
 
   --font: "Raleway", Arial, Helvetica, sans-serif;
   --width: 56rem;
@@ -43,19 +77,22 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: oklch(21% 0.006 285.885);     /* zinc-900 */
+    --background: var(--zinc-900);
+    --dots: var(--zinc-700);
     --foreground: #ffffff;
-    --line: oklch(37% 0.013 285.805);           /* zinc-700 */
-    --tag: oklch(27.4% 0.006 286.033);          /* zinc-800 */
-    --tag-highlight: oklch(76.5% 0.177 163.223);/* emerald-400 */
-    --on-tag-highlight: oklch(21% 0.006 285.885);
-    --tag-selection: oklch(37.8% 0.077 168.94); /* emerald-900 */
-    --accent: oklch(76.5% 0.177 163.223);       /* emerald-400: links on hover */
-    --accent-fill: oklch(69.6% 0.17 162.48);    /* emerald-500: buttons */
-    --accent-strong: oklch(59.6% 0.145 163.225);/* emerald-600: button hover */
-    --ring: oklch(76.5% 0.177 163.223);         /* emerald-400 */
-    --on-accent: oklch(21% 0.006 285.885);
-    --selection: oklch(71.4% 0.203 305.504);    /* purple-400 */
+    --ink: var(--zinc-950);
+    --card: var(--zinc-800);
+    --shadow: var(--zinc-950);
+    --shadow-1: var(--purple-400);
+    --shadow-2: var(--emerald-400);
+    --tag: var(--zinc-700);
+    --open: var(--zinc-800);
+    --accent: var(--emerald-400);
+    --ring: var(--emerald-400);
+    --on-accent: var(--zinc-900);
+    --selection: var(--purple-400);
+    --tag-selection: var(--emerald-900);
+    --cta-shadow: var(--emerald-400);
   }
 }
 
@@ -70,9 +107,13 @@ html {
 
 body {
   margin: 0;
-  background: var(--background);
+  overflow-x: clip;
+  background-color: var(--background);
+  background-image: radial-gradient(var(--dots) 1.5px, transparent 1.6px);
+  background-size: 24px 24px;
   color: var(--foreground);
   font-family: var(--font);
+  font-weight: 600;
   font-size: 1.25rem;
   line-height: 1.75rem;
   -webkit-font-smoothing: antialiased;
@@ -82,39 +123,23 @@ body {
 ::selection { background: var(--selection); color: #000; }
 
 h1, h2, h3, p, ul, ol, figure { margin: 0; }
-/* As on the main site (Tailwind resets headings), headings use the same
-   weight as body text, so everything shows in Raleway SemiBold. Only
-   <strong> uses Raleway Bold. */
+/* Headings use the same weight as body text, so everything shows in Raleway
+   SemiBold. Only <strong> uses Raleway Bold. */
 h1, h2, h3 { font-weight: inherit; }
 img { max-width: 100%; height: auto; display: block; }
 
 :focus { outline: none; }
-:focus-visible { box-shadow: 0 0 0 2px var(--ring); }
+:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 
-/* Text links, as on the main site: underlined, purple/emerald on hover */
+/* Text links: underlined, purple/emerald on hover */
 a {
-  color: var(--foreground);
+  color: inherit;
   text-decoration: underline;
   text-decoration-thickness: 2px;
   text-underline-offset: 4px;
   transition: color 0.2s;
 }
 a:hover, a:active, a:focus-visible { color: var(--accent); }
-
-/* Primary button */
-.button {
-  display: inline-block;
-  padding: 0.75rem 1.5rem;
-  background: var(--accent-fill, var(--accent));
-  color: var(--on-accent);
-  text-decoration: none;
-  transition: background-color 0.2s;
-}
-.button:hover, .button:active, .button:focus-visible {
-  background: var(--accent-strong);
-  color: var(--on-accent);
-}
-.button::selection { background: var(--accent-strong); color: #fff; }
 
 /* ---------- Skip link ---------- */
 .skip {
@@ -123,7 +148,7 @@ a:hover, a:active, a:focus-visible { color: var(--accent); }
   left: 1rem;
   z-index: 40;
   padding: 0.75rem 1.5rem;
-  background: var(--accent-fill, var(--accent));
+  background: var(--accent);
   color: var(--on-accent);
   text-decoration: none;
   transform: translateY(-200%);
@@ -134,62 +159,30 @@ a:hover, a:active, a:focus-visible { color: var(--accent); }
 .site-header {
   position: relative;
   z-index: 10;
-  margin-bottom: 6rem;
+  margin-bottom: 4rem;
   font-size: 1rem;
   line-height: 1;
 }
 
-/* The border sits on this inner bar so it can react to the header sticking */
-.header-bar {
-  background: var(--background);
-  border-bottom: 2px solid transparent;
-  transition: border-color 0.4s;
-}
-
+/* The site name, as a tilted sticker with the Razor Sharp slash */
 .brand {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
   width: max-content;
-  height: 4rem;
-  margin-left: var(--edge);
+  margin: 1.5rem 0 0 var(--edge);
+  padding: 0.75rem 1.125rem;
   text-decoration: none;
+  background: var(--card);
+  border: 3px solid var(--ink);
+  border-radius: 0.875rem;
+  box-shadow: 4px 4px 0 var(--shadow-1);
+  transform: rotate(-2deg);
 }
+.brand svg { width: 0.9rem; height: 0.9rem; fill: currentColor; }
 
 @media (min-width: 40rem) {
-  .site-header { margin-bottom: 12rem; }
-}
-
-/* Sticky header with a border that fades in as soon as you scroll, like the
-   main site. */
-@media (min-width: 48rem) {
-  .site-header {
-    position: sticky;
-    top: 0;
-    container-type: scroll-state;
-  }
-
-  /* Newer browsers know when the header is stuck to the top, so the border
-     fades in over 0.4 seconds, exactly as on the main site */
-  @container scroll-state(stuck: top) {
-    .header-bar { border-color: var(--line); }
-  }
-
-  /* Other browsers: tie the border to the scroll position instead, so it's
-     fully shown within the first couple of pixels of scrolling. Browsers with
-     neither feature simply show no border. */
-  @supports not (container-type: scroll-state) {
-    @supports (animation-timeline: scroll()) {
-      .header-bar {
-        animation: header-border linear both;
-        animation-timeline: scroll();
-      }
-    }
-  }
-}
-
-@keyframes header-border {
-  0% { border-color: transparent; }
-  0.2%, 100% { border-color: var(--line); }
+  .site-header { margin-bottom: 6rem; }
 }
 
 /* ---------- Main and sections ---------- */
@@ -201,14 +194,10 @@ main {
 }
 
 .section {
+  position: relative;
   width: 100%;
   max-width: var(--width);
   margin-bottom: 6rem;
-}
-.section--border {
-  margin-bottom: 3rem;
-  padding-bottom: 3rem;
-  border-bottom: 2px solid var(--line);
 }
 
 /* Sections fade up as they scroll into view, in browsers that support it */
@@ -223,8 +212,21 @@ main {
 }
 @keyframes reveal { from { opacity: 0; transform: translateY(20px); } }
 
-h1 { font-size: 3.75rem; line-height: 4.5rem; margin-bottom: 3rem; }
-h2 { font-size: 2.25rem; line-height: 2.5rem; margin-bottom: 1.5rem; }
+h1 { font-size: clamp(2.6rem, 9vw, 3.75rem); line-height: 1.15; margin-bottom: 2rem; }
+
+/* Section headings are stickers too */
+h2 {
+  display: inline-block;
+  margin-bottom: 2rem;
+  padding: 0.25rem 1rem;
+  font-size: 2.25rem;
+  line-height: 2.75rem;
+  background: var(--card);
+  border: 3px solid var(--ink);
+  border-radius: 0.875rem;
+  box-shadow: 4px 4px 0 var(--shadow-1);
+  transform: rotate(-1.5deg);
+}
 h3 { font-size: 1.5rem; line-height: 2rem; }
 
 .section p + p,
@@ -238,15 +240,49 @@ h3 { font-size: 1.5rem; line-height: 2rem; }
 }
 .list li + li { margin-top: 0.75rem; }
 
+/* ---------- Intro ---------- */
+/* "no nonsense", stuck on at an angle */
+.highlight {
+  display: inline-block;
+  margin-top: 0.15em;
+  padding: 0 0.3em;
+  background: var(--sticker-2);
+  color: var(--zinc-900);
+  border: 3px solid var(--ink);
+  border-radius: 0.75rem;
+  box-shadow: 5px 5px 0 var(--shadow);
+  transform: rotate(-2deg);
+}
+
+/* The four selling points, as purple and green chips */
+.hero .list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.hero .list li {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  font-size: 1.0625rem;
+  line-height: 1.5rem;
+  background: var(--sticker-1);
+  color: var(--zinc-900);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+}
+.hero .list li:nth-child(even) { background: var(--sticker-2); }
+
 /* ---------- Game list ----------
    Add a game by copying one <li class="game"> in index.html.
-   The grid fills in by itself, so there's nothing to change here. */
+   The grid fills in by itself, and cards alternate their tilt and colours,
+   so there's nothing to change here. */
 .games {
   list-style: none;
   padding: 0;
   display: grid;
   grid-template-columns: 1fr;
-  column-gap: 2rem;
+  gap: 2rem;
 }
 @media (min-width: 40rem) {
   .games { grid-template-columns: repeat(2, 1fr); }
@@ -256,13 +292,19 @@ h3 { font-size: 1.5rem; line-height: 2rem; }
   position: relative;
   display: flex;
   gap: 1.25rem;
-  padding: 2rem 0;
-  border-bottom: 2px solid var(--line);
+  padding: 1.5rem;
+  background: var(--card);
+  border: 3px solid var(--ink);
+  border-radius: 1.5rem;
+  box-shadow: 6px 6px 0 var(--shadow-1);
+  transform: rotate(-1deg);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
-.games > .game:nth-child(-n+2) { padding-top: 0; }
-@media (max-width: 39.99rem) {
-  .games > .game:nth-child(2) { padding-top: 2rem; }
-}
+.game:nth-child(even) { transform: rotate(1deg); box-shadow: 6px 6px 0 var(--shadow-2); }
+/* Straightens and lifts on hover, presses down when tapped */
+.game:hover { transform: rotate(0) translate(-3px, -3px); box-shadow: 9px 9px 0 var(--shadow-1); }
+.game:nth-child(even):hover { box-shadow: 9px 9px 0 var(--shadow-2); }
+.game:active { transform: translate(4px, 4px); box-shadow: 2px 2px 0 var(--shadow-1); }
 
 .game img {
   flex: none;
@@ -270,6 +312,12 @@ h3 { font-size: 1.5rem; line-height: 2rem; }
   width: 4.5rem;
   height: 4.5rem;
   border-radius: 1rem;
+  /* The outline is drawn over the edge of the icon rather than around it.
+     A normal border leaves a hairline seam between the border and the
+     clipped image, which shows the card through it on tilted or moving
+     cards. */
+  outline: 3px solid var(--ink);
+  outline-offset: -3px;
 }
 
 /* Text column: title, sentence, then tags pinned to the bottom so they
@@ -282,58 +330,130 @@ h3 { font-size: 1.5rem; line-height: 2rem; }
 }
 
 .game h3 { font-size: 1.25rem; line-height: 1.75rem; margin-bottom: 0.5rem; }
-/* Makes the whole entry clickable */
+.game h3 a { text-decoration: none; }
+/* Makes the whole card clickable */
 .game h3 a::after { content: ""; position: absolute; inset: 0; }
-.game:hover h3 a { color: var(--accent); }
+.game:hover h3 a { color: inherit; }
 
 .game p { font-size: 1.125rem; line-height: 1.75rem; }
 
-/* Tags look like the breadcrumbs on the main site: flat grey blocks, with
-   the first one (the kind of game) in purple, or emerald in dark mode */
+/* Tags: the first one (the kind of game) is purple on odd cards and green
+   on even ones */
 .game .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.5rem;
   margin-top: auto;
   padding-top: 1.25rem;
   font-size: 1rem;
   line-height: 1.5rem;
 }
 .tag {
-  padding: 0.5rem 0.75rem;
+  padding: 0.375rem 0.875rem;
   background: var(--tag);
-  color: var(--foreground);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
   white-space: nowrap;
 }
-.tag:first-child {
-  background: var(--tag-highlight);
-  color: var(--on-tag-highlight);
-}
+.tag:first-child { background: var(--sticker-1); color: var(--zinc-900); }
+.game:nth-child(even) .tag:first-child { background: var(--sticker-2); }
 .tag:first-child::selection { background: var(--tag-selection); color: #fff; }
 
-/* ---------- Questions (same as the FAQ on the main site) ---------- */
+/* ---------- Questions ---------- */
 .faq {
   display: grid;
   grid-template-columns: 1fr;
-  column-gap: 2rem;
+  gap: 0 1.5rem;
   align-items: start;
 }
 @media (min-width: 40rem) {
   .faq { grid-template-columns: repeat(2, 1fr); }
 }
 
-.faq details { border-bottom: 2px solid var(--line); }
+.faq details {
+  margin-bottom: 1rem;
+  padding: 0 1.25rem;
+  background: var(--card);
+  border: 3px solid var(--ink);
+  border-radius: 1rem;
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+.faq details[open] { background: var(--open); }
+
 .faq summary {
-  padding: 1rem 0;
+  position: relative;
+  padding: 1rem 3rem 1rem 0;
+  list-style: none;
   cursor: pointer;
   transition: color 0.2s;
 }
+.faq summary::-webkit-details-marker { display: none; }
 .faq summary:hover, .faq summary:active, .faq summary:focus-visible { color: var(--accent); }
-.faq .body { margin: 1rem 0; font-size: 1.125rem; line-height: 1.75rem; }
+
+/* Round "+" that turns into a cross when open */
+.faq summary::after {
+  content: "+";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin-top: -1rem;
+  font-size: 1.5rem;
+  line-height: 1;
+  background: var(--sticker-1);
+  color: var(--zinc-900);
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  transition: transform 0.25s;
+}
+.faq details[open] summary::after { transform: rotate(45deg); }
+
+.faq .body { padding-bottom: 1.25rem; font-size: 1.125rem; line-height: 1.75rem; }
 .faq .body p + p { margin-top: 0.75rem; }
 .faq .body h3 { font-size: 1.125rem; line-height: 1.75rem; font-weight: 700; margin: 1.25rem 0 0.25rem; }
 .faq ol { padding-left: 1.5rem; }
 .faq ol li + li { margin-top: 0.5rem; }
+
+/* ---------- Got an idea worth building? ---------- */
+.cta {
+  padding: 2rem;
+  background: var(--cta);
+  color: var(--cta-text);
+  border: 3px solid var(--ink);
+  border-radius: 1.5rem;
+  box-shadow: 8px 8px 0 var(--cta-shadow);
+}
+@media (min-width: 40rem) {
+  .cta { padding: 3rem; }
+}
+.cta h2 { background: #ffffff; color: var(--zinc-900); box-shadow: 4px 4px 0 var(--ink); }
+
+/* Primary button: presses in when clicked */
+.button {
+  display: inline-block;
+  padding: 0.875rem 1.75rem;
+  background: var(--button);
+  color: var(--on-button);
+  text-decoration: none;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 5px 5px 0 var(--button-shadow);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.button:hover, .button:focus-visible {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 var(--button-shadow);
+  color: var(--on-button);
+}
+.button:active {
+  transform: translate(4px, 4px);
+  box-shadow: 1px 1px 0 var(--button-shadow);
+  color: var(--on-button);
+}
+.button::selection { background: var(--purple-700); color: #fff; }
 
 /* ---------- Footer ---------- */
 /* Arrow-in-a-box icon on links that open in a new tab, as on the main site */
@@ -380,4 +500,4 @@ h3 { font-size: 1.5rem; line-height: 2rem; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition: none !important; }
 }
-main:focus-visible { box-shadow: none; }
+main:focus-visible { outline: none; }
