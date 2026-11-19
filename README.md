@@ -70,7 +70,7 @@ After that, phones update themselves the next time a game is used with signal: w
 
 ### Checking the games
 
-`_tests/` has checks that play every game and test it with a slow, patchy and switched-off signal. They use the Google Chrome already on your computer. Run them before sending out a change:
+`_tests/` has checks that play every game, check the sound, and test it with a slow, patchy and switched-off signal and with updates. They use the Google Chrome already on your computer. To run them yourself:
 
 ```
 cd _tests
@@ -78,7 +78,9 @@ npm install    # first time only
 npm test
 ```
 
-Folders starting with `_` aren't published to the website.
+GitHub also runs them on every push (see the Actions tab), and emails you if anything fails. They take a few minutes.
+
+Folders starting with `_` (and `.github`) aren't published to the website.
 
 ## Credits
 

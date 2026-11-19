@@ -1,0 +1,36 @@
+# Runs the game checks in _tests (play, sound, offline and updates) on every
+# push, so anything broken shows up on GitHub before phones pick it up.
+# Results are under the Actions tab on GitHub, and GitHub emails you if a
+# run fails.
+name: Check the games
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:   # adds a "Run workflow" button on GitHub
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: _tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: _tests/package-lock.json
+
+      - name: Install the checks
+        run: npm ci
+
+      # GitHub's machines normally come with Google Chrome; install it if not
+      - name: Make sure Chrome is there
+        run: command -v google-chrome || npx playwright install --with-deps chrome
+
+      - name: Check the games
+        run: npm test

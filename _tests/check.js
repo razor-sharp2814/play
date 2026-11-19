@@ -121,6 +121,37 @@ async function play(page) {
     check(!problems.length, 'plays, counts and parties with no errors', problems.slice(0, 3).join('; '));
     await ctx.close();
 
+    // Sound: plays when an iPhone is on silent, and comes back after a phone
+    // call or another app. Chrome doesn't do either of those iPhone things, so
+    // they're imitated here: a pretend iPhone sound setting, and sound that
+    // gets stuck as 'interrupted' until it's woken up.
+    [ctx, page] = await fresh();
+    await ctx.addInitScript(() => {
+      navigator.audioSession = { type: 'auto' };
+      const Real = window.AudioContext;
+      window.AudioContext = class extends Real {
+        constructor(...a) { super(...a); (window.__sounds = window.__sounds || []).push(this); }
+      };
+    });
+    await open(page, url);
+    const { width: sw, height: sh } = page.viewportSize();
+    await page.mouse.click(sw / 2, sh / 3);
+    await page.waitForTimeout(300);
+    const first = await page.evaluate(() => ({ session: navigator.audioSession.type, n: (window.__sounds || []).length, state: window.__sounds && window.__sounds[0].state }));
+    check(first.session === 'playback', 'asks to play sound even when an iPhone is on silent', `sound setting: ${first.session}`);
+    check(first.n === 1 && first.state === 'running', 'sound starts on the first tap', `${first.n} sound player(s), ${first.state}`);
+    await page.evaluate(() => {
+      const a = window.__sounds[0], realResume = a.resume.bind(a);
+      let stuck = true;
+      Object.defineProperty(a, 'state', { get: () => (stuck ? 'interrupted' : 'running'), configurable: true });
+      a.resume = () => { stuck = false; return realResume(); };
+    });
+    await page.mouse.click(sw / 2, sh / 3);
+    await page.waitForTimeout(300);
+    const after = await page.evaluate(() => window.__sounds[0].state);
+    check(after === 'running', "sound comes back after it's interrupted", `state after a tap: ${after}`);
+    await ctx.close();
+
     // Saved properly with a good signal, then plays offline
     [ctx, page] = await fresh();
     await open(page, url);
