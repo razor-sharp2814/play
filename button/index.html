@@ -192,22 +192,23 @@
     ['#ffc48a', '#ff8c1a', '#c45e00', '#8a4100', 'orange'],
   ];
   const NOTES = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25]; // C major pentatonic-ish, always sounds nice
-  // Swipe up or down to change button. Each one has its own colours, emoji
-  // and sound. To add one, copy a line and change it.
+  // Swipe up or down to change button. Each one has its own colours, emoji,
+  // sound and little effect when pressed (fx, see "Press effects" below).
+  // To add one, copy a line and change it.
   // icon: an SVG in the emoji folder ('' for none). The emoji in the comment
   //       is just to show which picture it is.
   // button colours are [light, mid, dark, edge].
   const MODES = [
-    { name: 'red',   icon: '',      bg: '#2a6df4', button: ['#ff8a8a', '#ff3b3b', '#c41212', '#8e0b0b'], sound: () => playNote() },
-    { name: 'chick', icon: '1f425', bg: '#5ab8ff', button: ['#ffe27a', '#ffc400', '#d19a00', '#8f6a00'], sound: () => cheep() },   // 🐥
-    { name: 'frog',  icon: '1f438', bg: '#1e6091', button: ['#8affc1', '#19d27a', '#0a9a55', '#066b3a'], sound: () => ribbit() },  // 🐸
-    { name: 'drop',  icon: '1f4a7', bg: '#ffd166', button: ['#9ad7ff', '#2aa8ff', '#0b6fc4', '#084c88'], sound: () => bloop() },   // 💧
-    { name: 'magic', icon: '2728',  bg: '#1b1b3a', button: ['#d3b0ff', '#9a5cff', '#6428c4', '#451a88'], sound: () => twinkle() }, // ✨
-    { name: 'drum',  icon: '1f941', bg: '#3d348b', button: ['#ffc48a', '#ff8c1a', '#c45e00', '#8a4100'], sound: () => boom() },    // 🥁
-    { name: 'pig',   icon: '1f437', bg: '#7b5e57', button: ['#ffd1e6', '#ff8cc0', '#d9558f', '#9e3365'], sound: () => oink() },    // 🐷
-    { name: 'sheep', icon: '1f411', bg: '#2d6a4f', button: ['#ffffff', '#f2f2f2', '#cfcfcf', '#9a9a9a'], sound: () => baa() },     // 🐑
-    { name: 'train', icon: '1f682', bg: '#e63946', button: ['#e6e6e6', '#a3a3a3', '#6e6e6e', '#454545'], sound: () => chooChoo() }, // 🚂
-    { name: 'poo',   icon: '1f4a9', bg: '#7cc66a', button: ['#c08a5c', '#8b5a2b', '#5e3a17', '#3f260e'], sound: () => plop() },   // 💩
+    { name: 'red',   icon: '',      bg: '#2a6df4', button: ['#ff8a8a', '#ff3b3b', '#c41212', '#8e0b0b'], sound: () => playNote(), fx: 'notes' },
+    { name: 'chick', icon: '1f425', bg: '#5ab8ff', button: ['#ffe27a', '#ffc400', '#d19a00', '#8f6a00'], sound: () => cheep(), fx: 'feathers' },   // 🐥
+    { name: 'frog',  icon: '1f438', bg: '#1e6091', button: ['#8affc1', '#19d27a', '#0a9a55', '#066b3a'], sound: () => ribbit(), fx: 'bubbles' },  // 🐸
+    { name: 'drop',  icon: '1f4a7', bg: '#ffd166', button: ['#9ad7ff', '#2aa8ff', '#0b6fc4', '#084c88'], sound: () => bloop(), fx: 'droplets' },   // 💧
+    { name: 'magic', icon: '2728',  bg: '#1b1b3a', button: ['#d3b0ff', '#9a5cff', '#6428c4', '#451a88'], sound: () => twinkle(), fx: 'twinkles' }, // ✨
+    { name: 'drum',  icon: '1f941', bg: '#3d348b', button: ['#ffc48a', '#ff8c1a', '#c45e00', '#8a4100'], sound: () => boom(), fx: 'rings' },    // 🥁
+    { name: 'pig',   icon: '1f437', bg: '#7b5e57', button: ['#ffd1e6', '#ff8cc0', '#d9558f', '#9e3365'], sound: () => oink(), fx: 'hearts' },    // 🐷
+    { name: 'sheep', icon: '1f411', bg: '#2d6a4f', button: ['#ffffff', '#f2f2f2', '#cfcfcf', '#9a9a9a'], sound: () => baa(), fx: 'wool' },     // 🐑
+    { name: 'train', icon: '1f682', bg: '#e63946', button: ['#e6e6e6', '#a3a3a3', '#6e6e6e', '#454545'], sound: () => chooChoo(), fx: 'steam' }, // 🚂
+    { name: 'poo',   icon: '1f4a9', bg: '#7cc66a', button: ['#c08a5c', '#8b5a2b', '#5e3a17', '#3f260e'], sound: () => plop(), fx: 'flies' },   // 💩
   ];
   // Colour of the outline around each picture, picked from the button's own
   // colours. A button can set its own with outline: '#...' instead.
@@ -501,11 +502,184 @@
     }
     c.closePath();
   }
+  // ---------- Press effects ----------
+  // A little effect on every press, different for each button. Kept small and
+  // short so the party confetti is still the big reward.
+  const bits = [];
+  const MAX_BITS = 160;
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+  // Where the button is right now (it moves while swiping)
+  function buttonCircle() {
+    const r = btn.getBoundingClientRect();
+    return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, R: r.width / 2 };
+  }
+  // A point on the top half of the button's edge
+  function onTopEdge({ cx, cy, R }) {
+    const a = rand(-Math.PI * 0.9, -Math.PI * 0.1);
+    return { x: cx + Math.cos(a) * R * 0.92, y: cy + Math.sin(a) * R * 0.92, a };
+  }
+  // kind: how it's drawn. vx, vy: speed. g: gravity (negative floats up).
+  // decay: how fast it fades. sway: side-to-side wobble. grow: size change.
+  function addBit(b) {
+    if (bits.length >= MAX_BITS) return;
+    bits.push({ vx: 0, vy: 0, g: 0, life: 1, decay: 0.02, rot: 0, vr: 0, sway: 0, grow: 1, phase: rand(0, 6.3), age: 0, ...b });
+  }
+  const EFFECTS = {
+    notes(c) {        // music notes float up
+      for (let i = 0; i < 3; i++) {
+        const p = onTopEdge(c);
+        addBit({ kind: 'note', x: p.x, y: p.y, vx: Math.cos(p.a) * 1.2, vy: rand(-2.6, -1.8), r: rand(9, 13), sway: 0.8, decay: 0.017, col: pick(['#ffffff', '#ffe27a', '#ffd1e6']) });
+      }
+    },
+    feathers(c) {     // fluffy feathers puff out, then float down
+      for (let i = 0; i < 6; i++) {
+        const p = onTopEdge(c);
+        addBit({ kind: 'feather', x: p.x, y: p.y, vx: Math.cos(p.a) * rand(2, 4), vy: rand(-5, -3), g: 0.12, r: rand(11, 16), rot: rand(0, 6.3), vr: rand(-0.08, 0.08), sway: 1.4, decay: 0.012, col: pick(['#ffe27a', '#fff3b8', '#ffd23a']) });
+      }
+    },
+    bubbles(c) {      // bubbles wobble up and pop
+      for (let i = 0; i < 5; i++) {
+        const p = onTopEdge(c);
+        addBit({ kind: 'bubble', x: p.x, y: p.y, vy: rand(-2.4, -1.4), r: rand(9, 18), sway: 1, decay: rand(0.012, 0.02), col: '#c8ffe2' });
+      }
+    },
+    droplets(c) {     // water splashes up and falls
+      for (let i = 0; i < 8; i++) {
+        const p = onTopEdge(c);
+        addBit({ kind: 'drop', x: p.x, y: p.y, vx: Math.cos(p.a) * rand(2, 5), vy: rand(-9, -5), g: 0.45, r: rand(6, 10), decay: 0.02, col: pick(['#2aa8ff', '#6cc6ff', '#0b6fc4']) });
+      }
+    },
+    twinkles(c) {     // stars twinkle all round the button
+      for (let i = 0; i < 6; i++) {
+        const a = rand(0, Math.PI * 2), d = c.R * rand(1.05, 1.4);
+        addBit({ kind: 'twinkle', x: c.cx + Math.cos(a) * d, y: c.cy + Math.sin(a) * d, r: rand(8, 16), vr: 0.05, decay: rand(0.018, 0.028), col: pick(['#ffe27a', '#ffffff', '#d3b0ff']) });
+      }
+    },
+    rings(c) {        // the beat ripples out from the drum
+      for (let i = 0; i < 2; i++) {
+        addBit({ kind: 'ring', x: c.cx, y: c.cy, r: c.R * (1 + i * 0.06), grow: 1.012 + i * 0.004, decay: 0.03 - i * 0.006, col: i ? '#ffc48a' : '#ffffff' });
+      }
+    },
+    hearts(c) {       // hearts float up
+      for (let i = 0; i < 4; i++) {
+        const p = onTopEdge(c);
+        addBit({ kind: 'heart', x: p.x, y: p.y, vx: Math.cos(p.a) * 0.8, vy: rand(-2.4, -1.6), r: rand(15, 22), sway: 1, decay: 0.015, col: pick(['#ff6fae', '#ff8cc0', '#ffd1e6']) });
+      }
+    },
+    wool(c) {         // soft tufts of wool drift away
+      for (let i = 0; i < 4; i++) {
+        const p = onTopEdge(c);
+        addBit({ kind: 'wool', x: p.x, y: p.y, vx: Math.cos(p.a) * 1.5, vy: rand(-1.6, -0.8), r: rand(8, 12), sway: 0.6, vr: rand(-0.03, 0.03), decay: 0.013, col: '#ffffff' });
+      }
+    },
+    steam(c) {        // puffs of steam billow up from the top
+      for (let i = 0; i < 4; i++) {
+        addBit({ kind: 'steam', x: c.cx + rand(-0.25, 0.25) * c.R, y: c.cy - c.R * 0.9, vx: rand(-0.6, 0.6), vy: rand(-3, -2), r: rand(12, 20), grow: 1.02, sway: 0.5, decay: 0.016, col: '#ffffff' });
+      }
+    },
+    flies(c) {        // a couple of flies buzz round in loops
+      for (let i = 0; i < 2; i++) {
+        const p = onTopEdge(c);
+        addBit({ kind: 'fly', x: p.x, y: p.y - 20, vx: rand(-1, 1), vy: rand(-1.4, -0.6), r: 5, decay: 0.009, orbit: rand(14, 24), spin: rand(0.18, 0.28) * pick([-1, 1]), col: '#222' });
+      }
+    },
+  };
+  function pressEffect() {
+    const m = MODES[mode];
+    if (EFFECTS[m.fx]) EFFECTS[m.fx](buttonCircle());
+  }
+
+  function heartPath(c, r) {
+    c.beginPath();
+    c.moveTo(0, r * 0.35);
+    c.bezierCurveTo(-r * 1.1, -r * 0.35, -r * 0.5, -r * 1.05, 0, -r * 0.45);
+    c.bezierCurveTo(r * 0.5, -r * 1.05, r * 1.1, -r * 0.35, 0, r * 0.35);
+    c.closePath();
+  }
+  function drawBit(b) {
+    ctx.save();
+    // flies loop around the point they're drifting along
+    const x = b.kind === 'fly' ? b.x + Math.cos(b.age * b.spin * 60) * b.orbit : b.x;
+    const y = b.kind === 'fly' ? b.y + Math.sin(b.age * b.spin * 60) * b.orbit * 0.6 : b.y;
+    ctx.translate(x, y); ctx.rotate(b.rot);
+    ctx.globalAlpha = Math.max(0, Math.min(1, b.life * 2));
+    ctx.fillStyle = b.col; ctx.strokeStyle = b.col;
+    const r = b.r;
+    switch (b.kind) {
+      case 'note':
+        ctx.beginPath(); ctx.ellipse(0, 0, r * 0.62, r * 0.45, -0.4, 0, 6.3); ctx.fill();
+        ctx.fillRect(r * 0.42, -r * 2, r * 0.18, r * 2);
+        ctx.beginPath(); ctx.moveTo(r * 0.6, -r * 2); ctx.quadraticCurveTo(r * 1.3, -r * 1.5, r * 1.05, -r * 0.9);
+        ctx.lineWidth = r * 0.18; ctx.lineCap = 'round'; ctx.stroke();
+        break;
+      case 'feather':
+        ctx.beginPath(); ctx.ellipse(0, 0, r, r * 0.45, 0, 0, 6.3); ctx.fill();
+        ctx.globalAlpha *= 0.5; ctx.lineWidth = 1.2; ctx.strokeStyle = '#d19a00';
+        ctx.beginPath(); ctx.moveTo(-r, 0); ctx.lineTo(r * 0.9, 0); ctx.stroke();
+        break;
+      case 'bubble':
+        ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.3); ctx.stroke();
+        ctx.beginPath(); ctx.arc(-r * 0.35, -r * 0.35, r * 0.22, 0, 6.3); ctx.fill();
+        break;
+      case 'drop':
+        ctx.rotate(Math.atan2(b.vy, b.vx) - Math.PI / 2 - b.rot);   // point the way it's moving
+        ctx.beginPath(); ctx.moveTo(0, r * 1.6); ctx.quadraticCurveTo(r, r * 0.2, r * 0.75, -r * 0.2);
+        ctx.arc(0, -r * 0.2, r * 0.75, 0, Math.PI, true); ctx.quadraticCurveTo(-r, r * 0.2, 0, r * 1.6); ctx.fill();
+        break;
+      case 'twinkle': {
+        const s = Math.sin(Math.min(1, b.age * 1.6) * Math.PI);   // grows, then shrinks away
+        ctx.scale(s, s);
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) { const rad = i % 2 ? r * 0.28 : r, a = (Math.PI / 4) * i; ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * rad, Math.sin(a) * rad); }
+        ctx.closePath(); ctx.fill();
+        break;
+      }
+      case 'ring':
+        ctx.lineWidth = 6 * b.life; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.3); ctx.stroke();
+        break;
+      case 'heart':
+        heartPath(ctx, r); ctx.fill();
+        break;
+      case 'wool':
+        ctx.beginPath();
+        [[0, 0, 1], [-0.8, 0.25, 0.75], [0.8, 0.25, 0.75], [0, 0.55, 0.7]].forEach(([dx, dy, k]) => { ctx.moveTo(dx * r + k * r, dy * r); ctx.arc(dx * r, dy * r, k * r, 0, 6.3); });
+        ctx.fill();
+        break;
+      case 'steam':
+        ctx.globalAlpha *= 0.55; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.3); ctx.fill();
+        break;
+      case 'fly': {
+        const flap = Math.sin(b.age * 90) * 0.5 + 0.5;
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.beginPath(); ctx.ellipse(-r * 0.6, -r * 0.9, r * 0.6, r * (0.4 + flap * 0.5), -0.5, 0, 6.3); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(r * 0.6, -r * 0.9, r * 0.6, r * (0.4 + flap * 0.5), 0.5, 0, 6.3); ctx.fill();
+        ctx.fillStyle = b.col; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.3); ctx.fill();
+        break;
+      }
+    }
+    ctx.restore();
+  }
+  function updateBits(dt) {
+    for (let i = bits.length - 1; i >= 0; i--) {
+      const b = bits[i];
+      b.age += dt;
+      b.vy += b.g;
+      b.x += b.vx + Math.sin(b.phase + b.age * 4) * b.sway;
+      b.y += b.vy;
+      b.rot += b.vr; b.r *= b.grow;
+      b.life -= b.decay;
+      if (b.life <= 0 || b.y > H + 60) { bits.splice(i, 1); continue; }
+      drawBit(b);
+    }
+  }
+
   let last = performance.now();
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     party.update(dt);
     ctx.clearRect(0, 0, W, H);
+    updateBits(dt);
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
       p.vy += 0.35; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= 0.016;
@@ -538,6 +712,7 @@
       burst(x, y);
       return;
     }
+    pressEffect();
     party.add();
   }
 
