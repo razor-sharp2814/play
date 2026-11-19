@@ -44,12 +44,40 @@ function saveForOffline({ name, version, files = [] }) {
   });
 
   self.addEventListener('activate', e => {
-    e.waitUntil((async () => {
+    const done = (async () => {
       const keys = await caches.keys();
-      await Promise.all(keys.filter(k => isMine(k) && k !== CACHE).map(k => caches.delete(k)));
+      const old = keys.filter(k => isMine(k) && k !== CACHE);
+      await Promise.all(old.map(k => caches.delete(k)));
       await self.clients.claim();
-    })());
+      return old.length > 0;
+    })();
+    e.waitUntil(done);
+    // If this replaced an older version, any game already open is still
+    // showing the old one, so move it over to the new one. This mustn't hold
+    // up activating: the reload comes back through here, and wouldn't be
+    // answered until activating had finished.
+    done.then(replaced => { if (replaced) moveOpenGamesToNewVersion(); });
   });
+
+  // Games put away in the background reload straight away. A game that's on
+  // screen is asked to reload itself when it won't interrupt play (see
+  // keepUpToDate in engine/core.js). A game that doesn't answer is a copy
+  // from before the engine existed, which can't do that, so it reloads now.
+  async function moveOpenGamesToNewVersion() {
+    const open = await self.clients.matchAll({ type: 'window' });
+    await Promise.all(open.map(async client => {
+      if (client.visibilityState !== 'hidden' && await willReloadItself(client)) return;
+      try { await client.navigate(client.url); } catch (_) {}
+    }));
+  }
+  function willReloadItself(client) {
+    return new Promise(resolve => {
+      const reply = new MessageChannel();
+      reply.port1.onmessage = () => resolve(true);
+      client.postMessage({ type: 'new-version' }, [reply.port2]);
+      setTimeout(() => resolve(false), 3000);
+    });
+  }
 
   self.addEventListener('fetch', e => {
     const req = e.request;

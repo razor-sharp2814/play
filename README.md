@@ -66,6 +66,8 @@ Phones keep a saved copy of each game, so they need telling when something chang
 - **Changed a game?** Bump `version` in that game's `sw.js`.
 - **Changed anything in `engine/`?** Bump `ENGINE_VERSION` in `engine/sw.js`. Every game then updates, with no need to bump each one.
 
+After that, phones update themselves the next time a game is used with signal: when it's opened, brought back on screen, or left open as the signal comes back. The new version downloads in the background, then the game swaps over straight away if no one has played yet, otherwise when it's put away or after 30 seconds with no taps, so no one is cut off mid-game.
+
 ### Checking the games
 
 `_tests/` has checks that play every game and test it with a slow, patchy and switched-off signal. They use the Google Chrome already on your computer. Run them before sending out a change:

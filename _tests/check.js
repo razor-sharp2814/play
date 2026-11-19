@@ -18,7 +18,7 @@ const GAMES = fs.readdirSync(ROOT).filter(d =>
 // fast: normal. slow: every file takes 2.5s. flaky: every 3rd request is
 // dropped. offline: nothing gets through.
 let signal = 'fast', requestCount = 0;
-let engineBumped = false;   // pretend ENGINE_VERSION has been bumped
+let engineBump = 0;   // pretend ENGINE_VERSION has been bumped this many times
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json',
   '.png': 'image/png', '.svg': 'image/svg+xml', '.css': 'text/css' };
 const server = http.createServer((req, res) => {
@@ -34,8 +34,8 @@ const server = http.createServer((req, res) => {
     }
     fs.readFile(file, (err2, data) => {
       if (err2) { res.writeHead(404); return res.end('not found'); }
-      if (engineBumped && url.pathname === '/engine/sw.js') {
-        data = String(data).replace(/ENGINE_VERSION = (\d+)/, (_, n) => `ENGINE_VERSION = ${+n + 1}`);
+      if (engineBump && url.pathname === '/engine/sw.js') {
+        data = String(data).replace(/ENGINE_VERSION = (\d+)/, (_, n) => `ENGINE_VERSION = ${+n + engineBump}`);
       }
       // the same short browser caching GitHub Pages uses
       res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream', 'cache-control': 'max-age=600' });
@@ -102,6 +102,7 @@ async function play(page) {
   const browser = await chromium.launch({ channel: 'chrome' });
   const fresh = async () => {
     const ctx = await browser.newContext({ viewport: { width: 400, height: 800 } });
+    ctx.setDefaultTimeout(15000);   // a stuck step fails rather than hanging
     return [ctx, await ctx.newPage()];
   };
 
@@ -174,15 +175,88 @@ async function play(page) {
     // Bumping ENGINE_VERSION alone makes every game save a fresh copy
     setSignal('fast');
     const before = Object.keys(await savedFiles(page));
-    engineBumped = true;
+    engineBump = 1;
     for (const game of GAMES) { await open(page, `${BASE}/${game}/`); await page.waitForTimeout(3000); }
     const after = Object.keys(await savedFiles(page));
-    engineBumped = false;
+    engineBump = 0;
     for (const game of GAMES) {
       const old = before.find(k => k.startsWith(`${game}-`));
       check(after.some(k => k.startsWith(`${game}-`) && k !== old), `${game} saves a fresh copy when the engine version is bumped`);
     }
     await ctx.close();
+  }
+
+  // ---------- Updates reach saved copies ----------
+  // Each scenario puts out a "new version" (by bumping ENGINE_VERSION) while
+  // a saved game is open, and checks when the game swaps over to it.
+  const markOld = page => page.evaluate(() => { window.__oldVersion = true; });
+  const isOld = page => page.evaluate(() => !!window.__oldVersion).catch(() => true);   // mid-reload counts as old
+  const newVersionSaved = (page, n) => page.evaluate(n => caches.keys().then(k => k.some(x => x.endsWith(`-engine${n}`))), n).catch(() => false);
+  async function waitFor(fn, ms) {
+    const end = Date.now() + ms;
+    while (Date.now() < end) { if (await fn()) return true; await new Promise(r => setTimeout(r, 250)); }
+    return false;
+  }
+  async function openSaved(game) {
+    const [ctx, page] = await fresh();
+    await open(page, `${BASE}/${game}/`);
+    await waitUntilSaved(page, 5000);
+    await page.reload();               // now running from the saved copy
+    await page.waitForTimeout(500);
+    return [ctx, page];
+  }
+  const ENGINE_NOW = +fs.readFileSync(path.join(ROOT, 'engine/sw.js'), 'utf8').match(/ENGINE_VERSION = (\d+)/)[1];
+  const newVersionSaved2 = (page) => newVersionSaved(page, ENGINE_NOW + engineBump);
+
+  for (const game of GAMES) {
+    console.log(`\n${game}: updates`);
+    setSignal('fast');
+
+    // Just opened, not played yet: swaps straight away
+    let [ctx, page] = await openSaved(game);
+    await markOld(page);
+    engineBump++;
+    await page.evaluate(() => window.dispatchEvent(new Event('online')));
+    check(await waitFor(() => newVersionSaved2(page), 10000), 'downloads a new version when the signal comes back');
+    check(await waitFor(async () => !(await isOld(page)), 8000), 'swaps to it straight away if no one has played yet');
+    await ctx.close();
+
+    // Being played: doesn't interrupt, then swaps when put away
+    [ctx, page] = await openSaved(game);
+    const { width, height } = page.viewportSize();
+    await page.mouse.click(width / 2, height / 2);
+    await markOld(page);
+    engineBump++;
+    await page.evaluate(() => window.dispatchEvent(new Event('online')));
+    await waitFor(() => newVersionSaved2(page), 10000);
+    let interrupted = false;
+    for (let i = 0; i < 8; i++) {
+      await page.mouse.click(width / 2, height / 2);
+      await page.waitForTimeout(1000);
+      if (!(await isOld(page))) interrupted = true;
+    }
+    check(!interrupted, "doesn't reload while someone is playing");
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    check(await waitFor(async () => !(await isOld(page)), 5000), 'swaps to the new version when put away');
+    await ctx.close();
+
+    // Played, then left alone: swaps after 30 seconds with no taps
+    if (game === GAMES[0]) {
+      [ctx, page] = await openSaved(game);
+      await page.mouse.click(width / 2, height / 2);
+      await markOld(page);
+      engineBump++;
+      await page.evaluate(() => window.dispatchEvent(new Event('online')));
+      await waitFor(() => newVersionSaved2(page), 10000);
+      await page.waitForTimeout(20000);
+      const tooSoon = !(await isOld(page));
+      check(!tooSoon && await waitFor(async () => !(await isOld(page)), 15000), 'swaps after 30 seconds left alone');
+      await ctx.close();
+    }
+    engineBump = 0;
   }
 
   await browser.close();
