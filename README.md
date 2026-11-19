@@ -40,6 +40,44 @@ Phones can lock themselves to one app, so little fingers can't swipe out of the 
 
 **iPhone and iPad:** switch on **Guided Access** in Settings (Accessibility, then Guided Access) and set a passcode. Open the game, triple-click the side button (or the Home button), then tap **Start**. To leave, triple-click the same button, enter your passcode, then tap **End**.
 
+## How the games are built
+
+Each game has its own folder, with everything that's special to it. The parts every game shares live in `engine/`:
+
+- `engine/core.js`: a sharp, full-screen canvas, and locking the screen down so little fingers can't zoom, scroll or select.
+- `engine/audio.js`: sound made from scratch (no sound files), with helpers for notes, noise and the party fanfare.
+- `engine/party.js`: the counter in the top left, and the party when it reaches 20. Each game adds its own fun to the party.
+- `engine/engine.css`: the shared page and counter styles.
+- `engine/sw.js`: saving each game on the phone so it works with no signal.
+
+There's no build step. The games load the engine straight from the folder, so what's in the repo is what goes live. To try a game on your computer, run `python3 -m http.server` at the top of the repo and open [localhost:8000](http://localhost:8000). Opening `index.html` straight from Finder won't work.
+
+### Making a new game
+
+1. Copy `_template/` and rename the copy. The folder name becomes the web address, e.g. `rockets/` is play.razorsharp.digital/rockets/.
+2. Search the new folder for `CHANGE-ME` and fill each one in.
+3. Add `icon-192.png` and `icon-512.png`.
+4. Write the game, add it to this README and the listings page, then run the checks below.
+
+### Sending out an update
+
+Phones keep a saved copy of each game, so they need telling when something changes:
+
+- **Changed a game?** Bump `version` in that game's `sw.js`.
+- **Changed anything in `engine/`?** Bump `ENGINE_VERSION` in `engine/sw.js`. Every game then updates, with no need to bump each one.
+
+### Checking the games
+
+`_tests/` has checks that play every game and test it with a slow, patchy and switched-off signal. They use the Google Chrome already on your computer. Run them before sending out a change:
+
+```
+cd _tests
+npm install    # first time only
+npm test
+```
+
+Folders starting with `_` aren't published to the website.
+
 ## Credits
 
 Made by [Razor Sharp](https://www.razorsharp.digital).

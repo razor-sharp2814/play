@@ -1,0 +1,11 @@
+{
+  "name": "play-checks",
+  "private": true,
+  "description": "Checks every game still plays, saves itself and works offline",
+  "scripts": {
+    "test": "node check.js"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

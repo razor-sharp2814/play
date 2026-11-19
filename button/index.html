@@ -86,15 +86,8 @@
   ]
 }
 </script>
+<link rel="stylesheet" href="../engine/engine.css">
 <style>
-  html, body {
-    margin: 0; height: 100%; overflow: hidden;
-    overscroll-behavior: none;            /* no pull-to-refresh */
-    touch-action: none;                   /* no zoom, scroll or swipe tricks */
-    -webkit-user-select: none; user-select: none;
-    -webkit-touch-callout: none;
-    -webkit-tap-highlight-color: transparent;
-  }
   body {
     background: #2a6df4;
     transition: background-color 0.35s ease;
@@ -154,19 +147,12 @@
   }
   canvas#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
-  /* Press counter, top left (kept clear of the notch) */
+  /* Press counter, top left (the shared parts are in engine.css) */
   #counter {
-    position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 14px);
-    left: calc(env(safe-area-inset-left, 0px) + 14px);
-    display: flex; align-items: center; gap: 10px;
+    gap: 10px;
     padding: 6px 16px 6px 8px;
-    border-radius: 999px;
     background: rgba(0, 0, 0, 0.22);
     color: #fff;
-    font: 700 28px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    font-variant-numeric: tabular-nums;
-    pointer-events: none;
     transition: transform 0.15s ease-out, background-color 0.3s;
   }
   #counter .dot {
@@ -174,7 +160,6 @@
     background: radial-gradient(circle at 35% 30%, #ff8a8a 0%, #ff3b3b 45%, #c41212 100%);
     box-shadow: 0 3px 0 #8e0b0b;
   }
-  #counter.bump { transform: scale(1.2); }
   #counter.party { background: rgba(255, 255, 255, 0.3); }
 </style>
 </head>
@@ -184,9 +169,12 @@
 <div id="counter" role="status" aria-label="Presses"><span class="dot"></span><span id="count">0</span></div>
 <canvas id="fx"></canvas>
 
-<script>
-(() => {
-  'use strict';
+<script type="module">
+  import { startGame, keepAwake, fitCanvas } from '../engine/core.js';
+  import { audio, ensureAudio, tone, noise, vary } from '../engine/audio.js';
+  import { createParty } from '../engine/party.js';
+
+  startGame();
 
   // ---------- Settings you might want to tweak ----------
   // Each colour has a "family" so the button never matches the background.
@@ -231,45 +219,10 @@
   // -------------------------------------------------------
 
   const btn = document.getElementById('button');
-  const canvas = document.getElementById('fx');
-  const ctx = canvas.getContext('2d');
-  let W = 0, H = 0, DPR = 1;
+  let W = 0, H = 0;
+  const ctx = fitCanvas(document.getElementById('fx'), (w, h) => { W = w; H = h; });
 
-  function resize() {
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
-    W = window.innerWidth; H = window.innerHeight;
-    canvas.width = W * DPR; canvas.height = H * DPR;
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  }
-  window.addEventListener('resize', resize);
-  resize();
-
-  // ---------- Lock things down ----------
-  ['contextmenu', 'dragstart', 'selectstart', 'gesturestart'].forEach(e =>
-    document.addEventListener(e, ev => ev.preventDefault()));
-  document.addEventListener('touchmove', ev => ev.preventDefault(), { passive: false });
-  document.addEventListener('keydown', ev => ev.preventDefault());
-
-  // Keep the screen awake while playing (if the phone allows it)
-  let wakeLock = null;
-  async function keepAwake() {
-    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
-  }
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
-
-  // ---------- Sound (made from scratch, so no files and no internet needed) ----------
-  let audio = null, noiseBuf = null;
-  function ensureAudio() {
-    if (!audio) {
-      try {
-        audio = new (window.AudioContext || window.webkitAudioContext)();
-        noiseBuf = audio.createBuffer(1, audio.sampleRate * 0.6, audio.sampleRate);
-        const d = noiseBuf.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      } catch (_) {}
-    }
-    if (audio && audio.state === 'suspended') audio.resume();
-  }
+  // ---------- Sound (helpers are in engine/audio.js) ----------
   let noteIndex = 0;
   function playNote() {
     if (!audio) return;
@@ -288,36 +241,6 @@
     osc.connect(gain).connect(audio.destination);
     osc.start(t); osc.stop(t + 0.5);
   }
-
-  // Small helpers for the sounds below
-  function tone(type, f0, f1, start, len, vol, dest) {
-    const t = audio.currentTime + start;
-    const osc = audio.createOscillator(), g = audio.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(f0, t);
-    osc.frequency.exponentialRampToValueAtTime(f1, t + len);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.01, len / 4));
-    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    osc.connect(g).connect(dest || audio.destination);
-    osc.start(t); osc.stop(t + len + 0.02);
-    return osc;
-  }
-  function noise(start, len, vol, filterType, f0, f1, q) {
-    if (!noiseBuf) return;
-    const t = audio.currentTime + start;
-    const src = audio.createBufferSource(); src.buffer = noiseBuf;
-    const f = audio.createBiquadFilter(); f.type = filterType; f.Q.value = q || 1;
-    f.frequency.setValueAtTime(f0, t);
-    f.frequency.exponentialRampToValueAtTime(f1, t + len);
-    const g = audio.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    src.connect(f).connect(g).connect(audio.destination);
-    src.start(t); src.stop(t + len + 0.02);
-  }
-  const vary = (n, amt) => n * (1 + (Math.random() - 0.5) * amt);
 
   // Poo: a squelchy cartoon "plop", then a little "plip"
   function plop() {
@@ -454,23 +377,6 @@
     noise(0, 0.25, 0.12, 'bandpass', up ? 500 : 2500, up ? 2500 : 500, 1.5);
   }
 
-  // Little rising fanfare for the party
-  function fanfare() {
-    if (!audio) return;
-    const t0 = audio.currentTime;
-    [523, 659, 784, 1047, 784, 1047].forEach((f, i) => {
-      const t = t0 + i * 0.11 + (i > 3 ? 0.08 : 0);
-      const osc = audio.createOscillator(), g = audio.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(f, t);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.16, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + (i === 5 ? 0.6 : 0.2));
-      osc.connect(g).connect(audio.destination);
-      osc.start(t); osc.stop(t + 0.65);
-    });
-  }
-
   // ---------- Colour changes (party only) ----------
   let bgIndex = 0, btnIndex = 0;
   function changeColours() {
@@ -525,7 +431,7 @@
 
   let switching = false;
   function changeMode(step) {
-    if (party || switching) return;
+    if (party.active || switching) return;
     switching = true;
     mode = (mode + step + MODES.length) % MODES.length;
     try { localStorage.setItem('button-mode', mode); } catch (_) {}
@@ -543,78 +449,31 @@
     };
   }
 
+  // ---------- Press counter and party (shared parts in engine/party.js) ----------
+  let nextColour = 0, nextBurst = 0;
+  const party = createParty({
+    goal: PARTY_AT,
+    length: PARTY_LENGTH,
+    fanfareVolume: 0.16,
+    onStart() {
+      nextColour = 0; nextBurst = 0;
+      for (let i = 0; i < 6; i++) burst(W * (0.1 + Math.random() * 0.8), H * (0.1 + Math.random() * 0.5));
+    },
+    onUpdate(dt, t) {
+      nextColour -= dt;
+      nextBurst -= dt;
+      // colours change twice a second (gently, not a flicker)
+      if (t < PARTY_LENGTH - 0.4 && nextColour <= 0) { changeColours(); nextColour = 0.5; }
+      // confetti pops all over the screen
+      if (t < PARTY_LENGTH - 0.6 && nextBurst <= 0) {
+        burst(W * (0.05 + Math.random() * 0.9), H * (0.05 + Math.random() * 0.7));
+        nextBurst = 0.13;
+      }
+    },
+    onEnd() { resetColours(); },
+  });
+
   resetColours();
-
-  // ---------- Press counter and party ----------
-  let presses = 0;
-  let party = null;   // { t, nextColour, nextBurst } while a party is on
-  const counterEl = document.getElementById('counter');
-  const countEl = document.getElementById('count');
-
-  function showCount() {
-    countEl.textContent = presses;
-    counterEl.classList.remove('bump');
-    void counterEl.offsetWidth;   // restart the bump animation
-    counterEl.classList.add('bump');
-    setTimeout(() => counterEl.classList.remove('bump'), 150);
-  }
-
-  function startParty() {
-    party = { t: 0, nextColour: 0, nextBurst: 0 };
-    counterEl.classList.add('party');
-    for (let i = 0; i < 6; i++) burst(W * (0.1 + Math.random() * 0.8), H * (0.1 + Math.random() * 0.5));
-    fanfare();
-    if (navigator.vibrate) navigator.vibrate([40, 60, 40, 60, 80]);
-  }
-
-  function updateParty(dt) {
-    party.t += dt;
-    party.nextColour -= dt;
-    party.nextBurst -= dt;
-    // colours change twice a second (gently, not a flicker)
-    if (party.t < PARTY_LENGTH - 0.4 && party.nextColour <= 0) { changeColours(); party.nextColour = 0.5; }
-    // confetti pops all over the screen
-    if (party.t < PARTY_LENGTH - 0.6 && party.nextBurst <= 0) {
-      burst(W * (0.05 + Math.random() * 0.9), H * (0.05 + Math.random() * 0.7));
-      party.nextBurst = 0.13;
-    }
-    if (party.t >= PARTY_LENGTH) {
-      party = null;
-      presses = 0;
-      counterEl.classList.remove('party');
-      resetColours();
-      showCount();
-    }
-  }
-
-  function drawPartyText() {
-    const t = party.t;
-    let a = 1;
-    if (t > PARTY_LENGTH - 0.5) a = Math.max(0, (PARTY_LENGTH - t) / 0.5);
-    // pops in with a little overshoot, then gently pulses
-    const pop = t < 0.35 ? 1 - Math.pow(1 - t / 0.35, 3) * Math.cos(t / 0.35 * 5) : 1;
-    const sc = pop * (1 + Math.sin(t * 8) * 0.04);
-    const fs = Math.min(W * 0.22, H * 0.14);
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.translate(W / 2, H * 0.14);
-    ctx.rotate(Math.sin(t * 5) * 0.05);
-    ctx.scale(sc, sc);
-    ctx.font = `900 ${fs}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = fs * 0.12; ctx.strokeStyle = '#1b1b3a';
-    ctx.strokeText('Party!', 0, 0);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('Party!', 0, 0);
-    ctx.restore();
-
-    // one soft flash as the party starts
-    if (t < 0.35) {
-      ctx.fillStyle = `rgba(255,255,255,${0.35 * (1 - t / 0.35)})`;
-      ctx.fillRect(0, 0, W, H);
-    }
-  }
 
   // ---------- Confetti ----------
   const particles = [];
@@ -645,7 +504,7 @@
   let last = performance.now();
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    if (party) updateParty(dt);
+    party.update(dt);
     ctx.clearRect(0, 0, W, H);
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
@@ -660,7 +519,7 @@
       else { star(ctx, p.r * 1.3, 0); ctx.fill(); }
       ctx.restore();
     }
-    if (party) drawPartyText();
+    party.draw(ctx, W, H);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(t => { last = t; frame(t); });
@@ -673,15 +532,13 @@
     MODES[mode].sound();
     if (navigator.vibrate) navigator.vibrate(25);
 
-    if (party) {
+    if (party.active) {
       // during a party every press changes colour and throws confetti too
       changeColours();
       burst(x, y);
       return;
     }
-    presses++;
-    showCount();
-    if (presses >= PARTY_AT) startParty();
+    party.add();
   }
 
   // Pointer events handle fingers, palms and several touches at once.
@@ -749,15 +606,15 @@
       wheelTotal = 0;
     }
   }, { passive: false });
-})();
 </script>
 <script>
-  // Save the game on the phone so it works with no signal (see sw.js).
+  // Save the game on the phone so it works with no signal (see sw.js and
+  // engine/sw.js). This stays in the page rather than the engine, so it still
+  // runs on a poor signal even if the engine files fail to download.
   if ('serviceWorker' in navigator) {
-    const save = () => navigator.serviceWorker.register('sw.js').catch(() => {});
+    const save = () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
     window.addEventListener('load', save);
-    // If the signal dropped while saving, try again as soon as it's back.
-    window.addEventListener('online', save);
+    window.addEventListener('online', save);   // signal back? try again
   }
   // Ask the phone not to clear the saved copy when it's short on space.
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});

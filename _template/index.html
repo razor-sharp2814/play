@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<!--
+  NEW GAME TEMPLATE
+  1. Copy this whole folder and rename it, e.g. "rockets" (the folder name is
+     the web address: play.razorsharp.digital/rockets/).
+  2. Search this folder for CHANGE-ME and fill each one in (this file,
+     manifest.json and sw.js).
+  3. Add icon-192.png and icon-512.png (square, with the picture kept well
+     inside the edges, as phones may crop it to a circle).
+  4. Write the game in the <script type="module"> below.
+  5. Add the game to the README and the listings page (index.html at the top
+     of the repo), then run the checks in _tests (see the README).
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2d6a4f"> <!-- CHANGE-ME: same colour as the background -->
+<meta name="mobile-web-app-capable" content="yes">
+<title>CHANGE-ME Game Name</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "VideoGame",
+      "@id": "https://play.razorsharp.digital/CHANGE-ME-folder/#game",
+      "name": "CHANGE-ME Game Name",
+      "description": "CHANGE-ME: one or two sentences saying what happens when you play.",
+      "url": "https://play.razorsharp.digital/CHANGE-ME-folder/",
+      "image": "https://play.razorsharp.digital/CHANGE-ME-folder/icon-512.png",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Any (runs in a web browser)",
+      "gamePlatform": "Web browser",
+      "playMode": "SinglePlayer",
+      "inLanguage": "en-GB",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "GBP"
+      },
+      "author": {
+        "@id": "https://www.razorsharp.digital/#organization"
+      },
+      "publisher": {
+        "@id": "https://www.razorsharp.digital/#organization"
+      },
+      "isPartOf": {
+        "@id": "https://play.razorsharp.digital/#website"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Games by Razor Sharp",
+          "item": "https://play.razorsharp.digital/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "CHANGE-ME Game Name",
+          "item": "https://play.razorsharp.digital/CHANGE-ME-folder/"
+        }
+      ]
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://www.razorsharp.digital/#organization",
+      "name": "Razor Sharp",
+      "url": "https://www.razorsharp.digital",
+      "logo": "https://www.razorsharp.digital/meta/index.png",
+      "founder": {
+        "@type": "Person",
+        "name": "Kerri Sharp",
+        "url": "https://www.razorsharp.digital/about"
+      },
+      "sameAs": [
+        "https://www.linkedin.com/company/razor-sharp-2814/",
+        "https://www.facebook.com/razorsharp2814/"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://play.razorsharp.digital/#website",
+      "name": "Games made by Razor Sharp",
+      "url": "https://play.razorsharp.digital/",
+      "inLanguage": "en-GB",
+      "publisher": {
+        "@id": "https://www.razorsharp.digital/#organization"
+      }
+    }
+  ]
+}
+</script>
+<link rel="stylesheet" href="../engine/engine.css">
+<style>
+  body { background: #2d6a4f; } /* CHANGE-ME */
+  canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* Counter, top left (the shared parts are in engine.css) */
+  #counter {
+    gap: 8px;
+    padding: 6px 16px 6px 8px;
+    background: rgba(0, 0, 0, 0.22);
+    color: #fff;
+  }
+  #counter .dot { width: 28px; height: 28px; border-radius: 50%; background: #ffd166; }
+  #counter.party { background: rgba(255, 255, 255, 0.3); }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="counter" role="status" aria-label="Taps"><span class="dot"></span><span id="count">0</span></div>
+
+<script type="module">
+  // The engine does the shared work: see engine/core.js, engine/audio.js
+  // and engine/party.js for what's available.
+  import { startGame, keepAwake, fitCanvas } from '../engine/core.js';
+  import { audio, ensureAudio, tone, vary } from '../engine/audio.js';
+  import { createParty } from '../engine/party.js';
+
+  startGame();
+
+  let W = 0, H = 0;
+  const ctx = fitCanvas(document.getElementById('scene'), (w, h) => { W = w; H = h; });
+
+  // ---------- Sound ----------
+  function pop() {
+    if (!audio) return;
+    const f = vary(500, 0.5);
+    tone('sine', f, f * 2, 0, 0.15, 0.3);
+  }
+
+  // ---------- Bubbles (an example: swap for your own game) ----------
+  const bubbles = [];
+  function addBubbles(x, y, n) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = 1 + Math.random() * 6;
+      bubbles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: 8 + Math.random() * 20, life: 1, hue: Math.random() * 360 });
+    }
+  }
+
+  // ---------- Counter and party ----------
+  const party = createParty({
+    onStart() { for (let i = 0; i < 6; i++) addBubbles(W * Math.random(), H * Math.random(), 20); },
+    onUpdate(dt, t) { if (Math.random() < 0.3) addBubbles(W * Math.random(), H * Math.random(), 8); },
+  });
+
+  // ---------- Main loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    party.update(dt);
+    ctx.clearRect(0, 0, W, H);
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      const b = bubbles[i];
+      b.x += b.vx; b.y += b.vy; b.life -= dt;
+      if (b.life <= 0) { bubbles.splice(i, 1); continue; }
+      ctx.globalAlpha = b.life;
+      ctx.fillStyle = `hsl(${b.hue} 90% 70%)`;
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.3); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    party.draw(ctx, W, H);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(t => { last = t; frame(t); });
+
+  // ---------- Tapping ----------
+  document.addEventListener('pointerdown', ev => {
+    ev.preventDefault();
+    ensureAudio(); keepAwake();     // phones only allow sound after a tap
+    addBubbles(ev.clientX, ev.clientY, 14);
+    pop();
+    if (navigator.vibrate) navigator.vibrate(15);
+    party.add();                    // counts the tap; a party starts at 20
+  });
+</script>
+<script>
+  // Save the game on the phone so it works with no signal (see sw.js and
+  // engine/sw.js). This stays in the page rather than the engine, so it still
+  // runs on a poor signal even if the engine files fail to download.
+  if ('serviceWorker' in navigator) {
+    const save = () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
+    window.addEventListener('load', save);
+    window.addEventListener('online', save);   // signal back? try again
+  }
+  // Ask the phone not to clear the saved copy when it's short on space.
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+</script>
+</body>
+</html>
