@@ -191,6 +191,13 @@
     tone('triangle', f * 3, f * 3.02, 0.08, 0.35, 0.03);
   }
 
+  // The peeking dolphin says hello when tapped: three quick, cheerful squeaks
+  function helloSqueak() {
+    if (!audio) return;
+    const f = vary(1100, 0.15);
+    [0, 1, 2].forEach(i => tone('sine', f * (1 + i * 0.18), f * (1.3 + i * 0.18), i * 0.09, 0.07, 0.1));
+  }
+
   // ---------- Dolphins ----------
   const SKINS = [
     { top: '#8a5bd8', belly: '#e2cffa', fin: '#6f43bd' },
@@ -203,6 +210,10 @@
   const PINK = { top: '#ff8fcf', belly: '#ffe8f5', fin: '#f060ad' };
   const PINK_CHANCE = 0.2;        // about one tapped jump in five...
   const PINK_AT_LEAST_EVERY = 7;  // ...and never more than this many apart
+  // The party's own leaps that are pink: these leaps, counting from the first
+  // (a leap every 0.12 seconds, so about 20 in a party). Spread out so the
+  // pink dolphins don't arrive together.
+  const PARTY_PINK_LEAPS = [4, 12];
   let sincePink = 0;
 
   function bodyPath(c) {
@@ -252,12 +263,23 @@
     c.restore();
   }
 
-  // small dolphin next to the jump counter
-  (() => {
-    const ic = document.getElementById('counter-icon').getContext('2d');
+  // small dolphin next to the jump counter. It turns pink for a moment
+  // whenever the pink dolphin appears.
+  const counterIcon = document.getElementById('counter-icon').getContext('2d');
+  let counterPinkTimer = null;
+  function drawCounterDolphin(skin) {
+    const ic = counterIcon;
+    ic.setTransform(1, 0, 0, 1, 0, 0);
+    ic.clearRect(0, 0, ic.canvas.width, ic.canvas.height);
     ic.translate(48, 40); ic.rotate(-0.25); ic.scale(0.34, 0.34);
-    drawDolphin(ic, SKINS[1], 0);
-  })();
+    drawDolphin(ic, skin, 0);
+  }
+  function counterGoesPink() {
+    drawCounterDolphin(PINK);
+    clearTimeout(counterPinkTimer);
+    counterPinkTimer = setTimeout(() => drawCounterDolphin(SKINS[1]), 2500);
+  }
+  drawCounterDolphin(SKINS[1]);
 
   const dolphins = [];
   const peeks = [];     // dolphins popping their heads out of the water
@@ -266,13 +288,13 @@
   // ---------- Jump counter and party (shared parts in engine/party.js) ----------
   const PARTY_AT = 20;      // jumps needed for a party
   const PARTY_LENGTH = 3;   // seconds
-  let nextLeap = 0;
+  let nextLeap = 0, partyLeaps = 0;
   const party = createParty({
     goal: PARTY_AT,
     length: PARTY_LENGTH,
     fanfareVolume: 0.14,
     onStart() {
-      nextLeap = 0;
+      nextLeap = 0; partyLeaps = 0;
       addConfetti(140, true);
       addConfetti(60, false);
     },
@@ -280,7 +302,12 @@
       nextLeap -= dt;
       // a dolphin leaps every 0.12 seconds, all along the sea
       if (t < PARTY_LENGTH - 0.6 && nextLeap <= 0) {
-        leap(W * (0.05 + Math.random() * 0.9), size * (0.7 + Math.random() * 1.1), true);
+        // a couple of them are pink (if the sea's too full for a leap, the
+        // pink one tries again on the next)
+        // (kept to the middle of the screen, so they're easy to spot)
+        const pink = PARTY_PINK_LEAPS.includes(partyLeaps + 1);
+        const x = pink ? W * (0.3 + Math.random() * 0.4) : W * (0.05 + Math.random() * 0.9);
+        if (leap(x, size * (0.7 + Math.random() * 1.1), true, pink)) partyLeaps++;
         nextLeap = 0.12;
       }
       if (t < 1.5 && Math.random() < 0.5) addConfetti(3, true);
@@ -318,7 +345,7 @@
   const ripples = [];   // tap ripples on the water
   let time = 0;
 
-  function leap(cx, peak, quiet) {
+  function leap(cx, peak, quiet, forcePink) {
     if (dolphins.length >= (party.active ? 26 : 7)) return false;
     const span = size * (2.6 + Math.random() * 0.6);
     const dir = Math.random() < 0.5 ? -1 : 1;
@@ -327,9 +354,9 @@
     const dive = size * 0.55; // how far below the surface the dolphin starts/ends
     const k = dive / (peak + dive);
     // Only jumps from a tap can be the pink dolphin, so she stays special
-    // (the party's own leaps are always purple)
-    const pink = !quiet && (++sincePink >= PINK_AT_LEAST_EVERY || Math.random() < PINK_CHANCE);
-    if (pink) sincePink = 0;
+    // (apart from the couple of pink ones the party asks for)
+    const pink = forcePink || !quiet && (++sincePink >= PINK_AT_LEAST_EVERY || Math.random() < PINK_CHANCE);
+    if (pink && !quiet) sincePink = 0;   // party pinks don't count towards the taps' pink
     dolphins.push({
       x0: cx - dir * span / 2, x1: cx + dir * span / 2,
       peak, dive, p: 0, dur: 1.5 + peak / H * 1.2,
@@ -365,7 +392,24 @@
       dir: Math.random() < 0.5 ? -1 : 1,
       skin: SKINS[Math.floor(Math.random() * SKINS.length)],
       up: false, down: false,
+      happy: -1,        // seconds into a happy wiggle after being tapped (-1 = not wiggling)
     });
+  }
+
+  // Tapping the dolphin who's peeking out makes her wiggle happily, hop and
+  // say hello, and she stays up a little longer. The tap area is generous,
+  // because little fingers aren't very precise. Returns true if she was tapped.
+  const PEEK_RISE = 0.45, PEEK_SINK = 0.6;
+  function tapPeek(x, y) {
+    const pk = peeks[0];
+    if (!pk || pk.t < PEEK_RISE || pk.t > pk.dur - PEEK_SINK) return false;   // only while fully up
+    if (Math.abs(x - pk.x) > size * 0.4 || y < waterY - size * 0.7 || y > waterY + size * 0.2) return false;
+    pk.happy = 0;
+    pk.dur = Math.min(pk.dur + 1.2, pk.t + PEEK_SINK + 3);   // stay up a bit longer (but not for ever)
+    const s = size / 226;
+    sparkleBurst(pk.x, waterY - 70 * s);
+    helloSqueak();
+    return true;
   }
 
   function smallSplash(x, y, vol) {
@@ -380,7 +424,7 @@
 
   function drawPeek(pk, dt) {
     pk.t += dt;
-    const t = pk.t, rise = 0.45, sink = 0.6;
+    const t = pk.t, rise = PEEK_RISE, sink = PEEK_SINK;
     const ease = v => 1 - (1 - v) * (1 - v);
     let r = 1;
     if (t < rise) r = ease(t / rise);
@@ -391,8 +435,17 @@
     if (!pk.down && t >= pk.dur - 0.25) { pk.down = true; smallSplash(pk.x, waterY, 0.04); }
 
     const s = size / 226;
-    const ang = -1.2 + Math.sin(t * 2.5) * 0.08;     // tilted up, with a little nod
-    const bob = Math.sin(t * 4) * 3 * r;              // gentle bobbing while up
+    let ang = -1.2 + Math.sin(t * 2.5) * 0.08;       // tilted up, with a little nod
+    let bob = Math.sin(t * 4) * 3 * r;                // gentle bobbing while up
+    if (pk.happy >= 0) {                              // tapped: a happy wiggle and a little hop
+      pk.happy += dt;
+      const h = pk.happy / 0.9;
+      if (h >= 1) pk.happy = -1;
+      else {
+        ang += Math.sin(pk.happy * 22) * 0.3 * (1 - h);
+        bob += Math.sin(h * Math.PI) * 28;
+      }
+    }
     const depth = (160 - 125 * r - bob) * 0.93 * s;    // how far the body sits below the surface
     ctx.save();
     // hide the rest of the body, cutting it off under the front waves so the
@@ -523,6 +576,25 @@
     waveLine(waterY + H * 0.11, H * 0.016, 0.010, 0.6, 4.0, 'rgba(37,16,79,0.95)');
   }
 
+  // Draw a leaping dolphin, angled along the curve of her jump
+  function drawLeaper(d) {
+    const p = d.p, pos = dolphinPos(d, p);
+    const vy = -(d.peak + d.dive) * 4 * (1 - 2 * p), vx = Math.abs(d.x1 - d.x0);
+    const ang = Math.atan2(vy, vx);
+    const s = size / 226;
+    ctx.save();
+    ctx.translate(pos.x, pos.y); ctx.scale(d.dir, 1); ctx.rotate(ang);
+    ctx.scale(s, s);
+    drawDolphin(ctx, d.skin, 0);
+    ctx.restore();
+    // the pink dolphin leaves a trail of sparkles while she's out of the water
+    if (d.pink && d.inDone && !d.outDone && Math.random() < 0.6) {
+      const along = -20 - Math.random() * 85, across = (Math.random() - 0.5) * 30;   // from her middle back to her tail
+      const cos = Math.cos(ang), sin = Math.sin(ang);
+      sparkleTrail(pos.x + d.dir * (cos * along - sin * across) * s, pos.y + (sin * along + cos * across) * s);
+    }
+  }
+
   // ---------- Main loop ----------
   let last = performance.now(), nextAuto = 1.2;
   function frame(now) {
@@ -552,25 +624,15 @@
       d.p += dt / d.dur;
       if (!d.inDone && d.p >= d.pIn) {
         d.inDone = true; const q = dolphinPos(d, d.pIn); splash(q.x, waterY, true, d.quiet);
-        if (d.pink) happyTrill();
+        if (d.pink) { happyTrill(); counterGoesPink(); }
       }
       if (!d.outDone && d.p >= d.pOut) { d.outDone = true; const q = dolphinPos(d, d.pOut); splash(q.x, waterY, false, d.quiet); }
       if (d.p >= 1) { dolphins.splice(i, 1); continue; }
-      const p = d.p, pos = dolphinPos(d, p);
-      const vy = -(d.peak + d.dive) * 4 * (1 - 2 * p), vx = Math.abs(d.x1 - d.x0);
-      const ang = Math.atan2(vy, vx);
-      ctx.save();
-      ctx.translate(pos.x, pos.y); ctx.scale(d.dir, 1); ctx.rotate(ang);
-      const s = size / 226; ctx.scale(s, s);
-      drawDolphin(ctx, d.skin, 0);
-      ctx.restore();
-      // the pink dolphin leaves a trail of sparkles while she's out of the water
-      if (d.pink && d.inDone && !d.outDone && Math.random() < 0.6) {
-        const along = -20 - Math.random() * 85, across = (Math.random() - 0.5) * 30;   // from her middle back to her tail
-        const cos = Math.cos(ang), sin = Math.sin(ang);
-        sparkleTrail(pos.x + d.dir * (cos * along - sin * across) * s, pos.y + (sin * along + cos * across) * s);
-      }
     }
+    // pink dolphins are drawn last, so they're in front and never hidden
+    // behind the purple ones when the sea is busy (like in a party)
+    for (const d of dolphins) if (!d.pink) drawLeaper(d);
+    for (const d of dolphins) if (d.pink) drawLeaper(d);
 
     drawSeaFront();
 
@@ -620,6 +682,7 @@
     ev.preventDefault();
     ensureAudio(); keepAwake();
     const x = ev.clientX, y = ev.clientY;
+    if (tapPeek(x, y)) { if (navigator.vibrate) navigator.vibrate(15); return; }
     // the dolphin leaps up to roughly where she tapped
     const leapt = leap(x, waterY - y + size * 0.15, false);
     // count the jump (not during a party), and start a party at 20
