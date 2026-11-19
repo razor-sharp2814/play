@@ -108,7 +108,7 @@
 
 <script type="module">
   import { startGame, keepAwake, fitCanvas } from '../engine/core.js';
-  import { audio, noiseBuf, ensureAudio } from '../engine/audio.js';
+  import { audio, noiseBuf, ensureAudio, tone, vary } from '../engine/audio.js';
   import { createParty } from '../engine/party.js';
 
   startGame();
@@ -181,6 +181,16 @@
     osc.start(t); osc.stop(t + 0.16);
   }
 
+  // The pink dolphin's own happy trill as she bursts out of the water: two
+  // quick rising squeaks, higher than the others, with a little sparkle on top
+  function happyTrill() {
+    if (!audio) return;
+    const f = vary(1400, 0.15);
+    tone('sine', f, f * 1.5, 0, 0.12, 0.13);
+    tone('sine', f * 1.25, f * 2, 0.13, 0.2, 0.13);
+    tone('triangle', f * 3, f * 3.02, 0.08, 0.35, 0.03);
+  }
+
   // ---------- Dolphins ----------
   const SKINS = [
     { top: '#8a5bd8', belly: '#e2cffa', fin: '#6f43bd' },
@@ -188,6 +198,12 @@
     { top: '#7d4fcf', belly: '#d9c2f6', fin: '#613aae' },
     { top: '#b98cf5', belly: '#f4e9ff', fin: '#9467e0' },
   ];
+  // The special pink dolphin. A brighter bubblegum pink than the sunset, with
+  // a pale belly, so she stands out against the pink sky.
+  const PINK = { top: '#ff8fcf', belly: '#ffe8f5', fin: '#f060ad' };
+  const PINK_CHANCE = 0.2;        // about one tapped jump in five...
+  const PINK_AT_LEAST_EVERY = 7;  // ...and never more than this many apart
+  let sincePink = 0;
 
   function bodyPath(c) {
     c.beginPath();
@@ -310,10 +326,14 @@
     peak = Math.max(size * 0.55, Math.min(peak, maxPeak));
     const dive = size * 0.55; // how far below the surface the dolphin starts/ends
     const k = dive / (peak + dive);
+    // Only jumps from a tap can be the pink dolphin, so she stays special
+    // (the party's own leaps are always purple)
+    const pink = !quiet && (++sincePink >= PINK_AT_LEAST_EVERY || Math.random() < PINK_CHANCE);
+    if (pink) sincePink = 0;
     dolphins.push({
       x0: cx - dir * span / 2, x1: cx + dir * span / 2,
       peak, dive, p: 0, dur: 1.5 + peak / H * 1.2,
-      dir, skin: SKINS[Math.floor(Math.random() * SKINS.length)],
+      dir, skin: pink ? PINK : SKINS[Math.floor(Math.random() * SKINS.length)], pink,
       pIn: (1 - Math.sqrt(1 - k)) / 2, pOut: (1 + Math.sqrt(1 - k)) / 2,
       inDone: false, outDone: false, quiet: !!quiet,
     });
@@ -392,6 +412,16 @@
     }
   }
 
+  // One small, slow sparkle for the pink dolphin's trail
+  function sparkleTrail(x, y) {
+    const colours = ['#ff9ad5', '#ffffff', '#ffd27a', '#ffc2e6'];
+    sparkles.push({
+      x, y, vx: (Math.random() - 0.5) * 1.2, vy: (Math.random() - 0.5) * 1.2,
+      r: 3 + Math.random() * 6, life: 0.9, rot: Math.random() * 3,
+      col: colours[Math.floor(Math.random() * colours.length)],
+    });
+  }
+
   function starPath(c, r) {
     c.beginPath();
     for (let i = 0; i < 8; i++) {
@@ -418,14 +448,47 @@
     ctx.fillStyle = '#ffe3a0';
     ctx.beginPath(); ctx.arc(sx, sy, sr, Math.PI, 0); ctx.fill();
 
-    // soft clouds
+    drawClouds();
+  }
+
+  // ---------- Clouds ----------
+  // Soft clouds drift slowly across the sky, each made of a few puffs that
+  // gently grow, shrink and shift, so the clouds slowly change shape.
+  // Sizes and positions are fractions of the screen, so they fit any phone.
+  const CLOUD_SPEED = 0.008;   // screen widths per second (about 2 minutes to cross)
+  const CLOUD_MORPH = 1;       // how quickly they change shape (2 = twice as fast)
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clouds = [0.22, 0.36, 0.5, 0.64, 0.78].map(y => {
+    const n = 3 + Math.floor(Math.random() * 3);   // 3 to 5 puffs
+    return {
+      start: Math.random(),                          // where across the sky it begins
+      y: y + rand(-0.04, 0.04),                      // height, as a fraction of the sky
+      speed: CLOUD_SPEED * rand(0.7, 1.3),
+      puffs: Array.from({ length: n }, (_, j) => ({
+        dx: (j - (n - 1) / 2) * rand(0.06, 0.09),    // spread out left to right
+        dy: rand(-0.008, 0.004),
+        rx: rand(0.06, 0.11), ry: rand(0.011, 0.02),
+        phase: rand(0, 6.3), rate: rand(0.12, 0.3),  // each puff changes at its own pace
+      })),
+    };
+  });
+
+  function drawClouds() {
     ctx.fillStyle = 'rgba(255,170,200,0.28)';
-    for (let i = 0; i < 4; i++) {
-      const cx = ((i * 0.31 + time * 0.004) % 1.3 - 0.15) * W, cy = seaY * (0.25 + i * 0.12);
+    for (const c of clouds) {
+      // drift left to right, wrapping round once fully off the screen
+      const cx = (((c.start + time * c.speed) % 1.7) - 0.35) * W, cy = seaY * c.y;
       ctx.beginPath();
-      ctx.ellipse(cx, cy, W * 0.16, H * 0.018, 0, 0, 6.3);
-      ctx.ellipse(cx + W * 0.07, cy - H * 0.01, W * 0.1, H * 0.016, 0, 0, 6.3);
-      ctx.fill();
+      for (const p of c.puffs) {
+        const t = time * p.rate * CLOUD_MORPH + p.phase;
+        const grow = 1 + Math.sin(t) * 0.3;          // puffs swell and shrink
+        const px = cx + (p.dx + Math.sin(t * 0.7) * 0.02) * W;   // and drift a little within the cloud
+        const py = cy + (p.dy + Math.cos(t * 0.8) * 0.005) * H;
+        const rx = p.rx * W * grow, ry = p.ry * H * (0.85 + grow * 0.15);
+        ctx.moveTo(px + rx, py);                     // each puff its own outline
+        ctx.ellipse(px, py, rx, ry, 0, 0, Math.PI * 2);
+      }
+      ctx.fill();   // one shape, so overlapping puffs don't look darker
     }
   }
 
@@ -487,7 +550,10 @@
     for (let i = dolphins.length - 1; i >= 0; i--) {
       const d = dolphins[i];
       d.p += dt / d.dur;
-      if (!d.inDone && d.p >= d.pIn) { d.inDone = true; const q = dolphinPos(d, d.pIn); splash(q.x, waterY, true, d.quiet); }
+      if (!d.inDone && d.p >= d.pIn) {
+        d.inDone = true; const q = dolphinPos(d, d.pIn); splash(q.x, waterY, true, d.quiet);
+        if (d.pink) happyTrill();
+      }
       if (!d.outDone && d.p >= d.pOut) { d.outDone = true; const q = dolphinPos(d, d.pOut); splash(q.x, waterY, false, d.quiet); }
       if (d.p >= 1) { dolphins.splice(i, 1); continue; }
       const p = d.p, pos = dolphinPos(d, p);
@@ -498,6 +564,12 @@
       const s = size / 226; ctx.scale(s, s);
       drawDolphin(ctx, d.skin, 0);
       ctx.restore();
+      // the pink dolphin leaves a trail of sparkles while she's out of the water
+      if (d.pink && d.inDone && !d.outDone && Math.random() < 0.6) {
+        const along = -20 - Math.random() * 85, across = (Math.random() - 0.5) * 30;   // from her middle back to her tail
+        const cos = Math.cos(ang), sin = Math.sin(ang);
+        sparkleTrail(pos.x + d.dir * (cos * along - sin * across) * s, pos.y + (sin * along + cos * across) * s);
+      }
     }
 
     drawSeaFront();
