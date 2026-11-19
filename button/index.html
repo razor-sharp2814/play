@@ -494,6 +494,14 @@
   const dotsEl = document.getElementById('modes');
   const counterDot = document.querySelector('#counter .dot');
   MODES.forEach(() => dotsEl.appendChild(document.createElement('span')));
+  // Load every button's picture up front, so swiping never waits for one to
+  // download (and nothing pops in late on a poor signal).
+  const preloaded = MODES.filter(m => m.icon).map(m => {
+    const img = new Image();
+    img.src = `emoji/${m.icon}.svg`;
+    if (img.decode) img.decode().catch(() => {});
+    return img;
+  });
 
   let mode = 0;
   try { mode = Math.max(0, Math.min(MODES.length - 1, parseInt(localStorage.getItem('button-mode'), 10) || 0)); } catch (_) {}
@@ -744,9 +752,15 @@
 })();
 </script>
 <script>
+  // Save the game on the phone so it works with no signal (see sw.js).
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    const save = () => navigator.serviceWorker.register('sw.js').catch(() => {});
+    window.addEventListener('load', save);
+    // If the signal dropped while saving, try again as soon as it's back.
+    window.addEventListener('online', save);
   }
+  // Ask the phone not to clear the saved copy when it's short on space.
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 </script>
 </body>
 </html>
