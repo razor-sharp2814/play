@@ -3,7 +3,7 @@
 //
 // Bump ENGINE_VERSION whenever you change anything in the engine folder.
 // Every game then saves a fresh copy the next time it's opened with signal.
-const ENGINE_VERSION = 4;
+const ENGINE_VERSION = 5;
 // (The fonts are for the settings panel, which matches the listings page.)
 const ENGINE_FILES = ['../engine/engine.css', '../engine/core.js', '../engine/audio.js', '../engine/party.js', '../engine/taps.js', '../engine/settings.js',
   '../fonts/Raleway-SemiBold.woff2', '../fonts/Raleway-Bold.woff2'];

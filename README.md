@@ -43,7 +43,7 @@ Once a game is saved, open it from its own icon. It runs full screen, like an ap
 
 ## Settings, and getting the latest version
 
-Every game has a grey button in the top right. Press and hold it for 3 seconds (on a computer, click and hold) to open the settings for grown-ups. They show the version number, and have a **Refresh app** button. That downloads the latest version of the game straight away, without waiting for the phone to update it. With no signal, it says so and leaves the game as it was. Anything saved in a game, like the pictures in Pictures, isn't affected.
+Every game has a grey button in the top right. Press and hold it for 3 seconds (on a computer, click and hold) to open the settings for grown-ups. They show the app version (the game's own, from its `sw.js`) and the engine version (`ENGINE_VERSION` in `engine/sw.js`), and have a **Refresh app** button. That downloads the latest version of the game straight away, without waiting for the phone to update it. With no signal, it says so and leaves the game as it was. Anything saved in a game, like the pictures in Pictures, isn't affected.
 
 ## Keeping little hands inside the game
 
@@ -71,8 +71,21 @@ There's no build step. The games load the engine straight from the folder, so wh
 
 1. Copy `_template/` and rename the copy. The folder name becomes the web address, e.g. `rockets/` is play.razorsharp.digital/rockets/.
 2. Search the new folder for `CHANGE-ME` and fill each one in.
-3. Add `icon-192.png` and `icon-512.png`.
+3. Add `icon-192.png` and `icon-512.png`, then make the link preview picture (below).
 4. Write the game, add it to this README and the listings page, then run the checks below.
+
+### Link previews
+
+When a game's address is pasted into Slack, WhatsApp, Messages and so on, it shows a preview card. That comes from the tags at the top of each game's `index.html` (`og:title`, `og:description` and so on, filled in from the template) and the game's `preview.png`.
+
+To make or update `preview.png` after changing a game's name, short description (`og:description`) or icon:
+
+```
+cd _tests
+npm run previews          # every game, or: npm run previews dolphins
+```
+
+The checks fail if a game is missing its preview tags or picture.
 
 ### Sending out an update
 

@@ -8,7 +8,8 @@
   2. Search this folder for CHANGE-ME and fill each one in (this file,
      manifest.json and sw.js).
   3. Add icon-192.png and icon-512.png (square, with the picture kept well
-     inside the edges, as phones may crop it to a circle).
+     inside the edges, as phones may crop it to a circle). Then make the
+     link preview picture: cd _tests && npm run previews
   4. Write the game in the <script type="module"> below.
   5. Add the game to the README and the listings page (index.html at the top
      of the repo), then run the checks in _tests (see the README).
@@ -18,6 +19,27 @@
 <meta name="theme-color" content="#2d6a4f"> <!-- CHANGE-ME: same colour as the background -->
 <meta name="mobile-web-app-capable" content="yes">
 <title>CHANGE-ME Game Name</title>
+<!-- Link previews (Slack, WhatsApp, Messages and so on). Make the picture
+     with: cd _tests && npm run previews -->
+<meta name="description" content="CHANGE-ME: one or two sentences saying what happens when you play.">
+<meta name="author" content="Kerri Sharp">
+<link rel="canonical" href="https://play.razorsharp.digital/CHANGE-ME-folder/">
+<meta property="og:site_name" content="Games made by Razor Sharp">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_GB">
+<meta property="og:title" content="CHANGE-ME Game Name">
+<meta property="og:description" content="CHANGE-ME: a few words for link previews">
+<meta property="og:url" content="https://play.razorsharp.digital/CHANGE-ME-folder/">
+<meta property="og:image" content="https://play.razorsharp.digital/CHANGE-ME-folder/preview.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="CHANGE-ME Game Name. CHANGE-ME: a few words for link previews">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CHANGE-ME Game Name">
+<meta name="twitter:description" content="CHANGE-ME: a few words for link previews">
+<meta name="twitter:image" content="https://play.razorsharp.digital/CHANGE-ME-folder/preview.png">
+<meta name="twitter:image:alt" content="CHANGE-ME Game Name. CHANGE-ME: a few words for link previews">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <script type="application/ld+json">

@@ -6,5 +6,5 @@ importScripts('../engine/sw.js');
 
 saveForOffline({
   name: 'dolphins',
-  version: 9,
+  version: 10,
 });

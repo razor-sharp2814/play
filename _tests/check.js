@@ -118,8 +118,21 @@ async function play(page) {
   for (const game of GAMES) {
     const url = `${BASE}/${game}/`;
     console.log(`\n${game}`);
-    for (const f of ['index.html', 'manifest.json', 'sw.js', 'icon-192.png', 'icon-512.png']) {
-      if (!fs.existsSync(path.join(ROOT, game, f))) check(false, `has ${f}`);
+    for (const f of ['index.html', 'manifest.json', 'sw.js', 'icon-192.png', 'icon-512.png', 'preview.png']) {
+      if (!fs.existsSync(path.join(ROOT, game, f))) check(false, `has ${f}`, f === 'preview.png' ? 'make it with: npm run previews' : '');
+    }
+
+    // Link previews (Slack, WhatsApp and so on) need these in the page itself
+    const html = fs.readFileSync(path.join(ROOT, game, 'index.html'), 'utf8');
+    const meta = p => (html.match(new RegExp(`<meta (?:property|name)="${p}" content="([^"]*)"`)) || [])[1];
+    const pageUrl = `https://play.razorsharp.digital/${game}/`;
+    const missingTags = ['description', 'og:title', 'og:description', 'og:url', 'og:image', 'og:image:alt', 'twitter:card', 'twitter:image']
+      .filter(p => !meta(p) || meta(p).includes('CHANGE-ME'));
+    check(!missingTags.length && meta('og:url') === pageUrl && meta('og:image') === `${pageUrl}preview.png`,
+      'has link preview tags', missingTags.length ? `missing: ${missingTags.join(', ')}` : `${meta('og:url')} ${meta('og:image')}`);
+    if (fs.existsSync(path.join(ROOT, game, 'preview.png'))) {
+      const png = fs.readFileSync(path.join(ROOT, game, 'preview.png'));
+      check(png.readUInt32BE(16) === 1200 && png.readUInt32BE(20) === 630, 'link preview picture is 1200 x 630');
     }
 
     // Plays properly with a good signal
@@ -215,8 +228,8 @@ async function play(page) {
     check(await page.locator('.gs-panel').isVisible(), 'holding the grey button opens the settings');
     const swVersion = fs.readFileSync(path.join(ROOT, game, 'sw.js'), 'utf8').match(/version:\s*(\d+)/)[1];
     await page.waitForTimeout(300);
-    const version = await page.locator('.gs-version').textContent();
-    check(version === `Version ${swVersion}.${ENGINE_VERSION}`, 'settings show the version', version);
+    const version = await page.locator('.gs-version').innerText();
+    check(version === `App version ${swVersion}\nEngine version ${ENGINE_VERSION}`, 'settings show the app and engine versions', version.replace('\n', ' / '));
     const links = await page.locator('.gs-panel a').evaluateAll(as => as.map(a => a.href));
     check(['mailto:hello@razorsharp.digital', 'https://play.razorsharp.digital/', 'https://www.razorsharp.digital/terms-and-conditions',
       'https://www.razorsharp.digital/privacy-policy', 'https://www.razorsharp.digital/cookies-policy'].every(l => links.includes(l)),

@@ -230,7 +230,8 @@ function gameName() {
 }
 const isMine = (name, key) => key.startsWith(`${name}-v`) && /^\d+(-engine\d+)?$/.test(key.slice(name.length + 2));
 
-// "Version 13.3": the game's version, then the engine's. Read from the copy
+// The game's version and the engine's (the shared engine folder), each on a
+// line of their own. Read from the copy
 // saved on the phone (so it's the version actually running), or from the
 // server if it hasn't been saved yet.
 async function showVersion(el) {
@@ -249,7 +250,7 @@ async function showVersion(el) {
       engine = (e.match(/ENGINE_VERSION = (\d+)/) || [])[1];
     } catch (_) {}
   }
-  el.textContent = game ? `Version ${game}.${engine || 0}` : '';
+  el.replaceChildren(...(game ? [`App version ${game}`, document.createElement('br'), `Engine version ${engine || '?'}`] : []));
 }
 
 // Refresh app: download every file of the game again, straight from the

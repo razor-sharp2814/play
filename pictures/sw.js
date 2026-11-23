@@ -9,5 +9,5 @@ importScripts('../engine/sw.js');
 
 saveForOffline({
   name: 'pictures',
-  version: 1,
+  version: 2,
 });
