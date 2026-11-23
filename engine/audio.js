@@ -50,8 +50,9 @@ export function tone(type, f0, f1, start, len, vol, dest) {
 }
 
 // A burst of filtered noise, with the filter sweeping from f0 to f1 Hz.
-// filterType is 'lowpass', 'highpass' or 'bandpass'.
-export function noise(start, len, vol, filterType, f0, f1, q) {
+// filterType is 'lowpass', 'highpass' or 'bandpass'. dest is where the sound
+// goes (the speaker if left out), as for tone().
+export function noise(start, len, vol, filterType, f0, f1, q, dest) {
   if (!noiseBuf) return;
   const t = audio.currentTime + start;
   const src = audio.createBufferSource(); src.buffer = noiseBuf;
@@ -62,7 +63,7 @@ export function noise(start, len, vol, filterType, f0, f1, q) {
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
   g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-  src.connect(f).connect(g).connect(audio.destination);
+  src.connect(f).connect(g).connect(dest || audio.destination);
   src.start(t); src.stop(t + len + 0.02);
 }
 
