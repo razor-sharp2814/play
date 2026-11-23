@@ -24,6 +24,22 @@
 // For a matching look, build the settings from the shared classes in
 // engine.css: .gs-section, .gs-heading, .gs-note, .gs-row, .gs-button
 // (with .gs-primary or .gs-danger), .gs-input.
+//
+// Every game's settings end with the same "About" part, added here: the
+// version, a "Refresh app" button, an email address for help, and links to
+// the games site, Razor Sharp and the legal pages. A game with nothing of its
+// own to set can leave out onOpen, and just gets that.
+
+const EMAIL = 'hello@razorsharp.digital';
+const LINKS = {
+  games: ['Games by Razor Sharp', 'https://play.razorsharp.digital/'],
+  company: ['Razor Sharp', 'https://www.razorsharp.digital/'],
+  legal: [
+    ['Terms', 'https://www.razorsharp.digital/terms-and-conditions'],
+    ['Privacy', 'https://www.razorsharp.digital/privacy-policy'],
+    ['Cookies', 'https://www.razorsharp.digital/cookies-policy'],
+  ],
+};
 
 const RING = 2 * Math.PI * 25;   // length of the ring's circle (r = 25)
 
@@ -146,8 +162,27 @@ export function createSettings(options = {}) {
       <h2 class="gs-title"></h2>
       <button type="button" class="gs-button gs-primary gs-done">Done</button>
     </div>
-    <div class="gs-body"></div>`;
+    <div class="gs-body"></div>
+    <div class="gs-body gs-about">
+      <div class="gs-section">
+        <h3 class="gs-heading">About this game</h3>
+        <p class="gs-note gs-version"></p>
+        <div class="gs-actions"><button type="button" class="gs-button gs-refresh">Refresh app</button></div>
+        <p class="gs-note gs-refresh-note">Downloads the latest version of the game. Anything saved in the game stays as it is.</p>
+      </div>
+      <div class="gs-section">
+        <h3 class="gs-heading">Need a hand?</h3>
+        <p class="gs-note">Email <a href="mailto:${EMAIL}">${EMAIL}</a></p>
+      </div>
+      <footer class="gs-credit">
+        <p>Made by <a href="${LINKS.company[1]}" target="_blank" rel="noopener noreferrer">${LINKS.company[0]}</a>.
+          More games at <a href="${LINKS.games[1]}" target="_blank" rel="noopener noreferrer">${LINKS.games[0]}</a>.</p>
+        <nav aria-label="Legal">${LINKS.legal.map(([name, url]) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${name}</a>`).join('')}</nav>
+      </footer>
+    </div>`;
   panel.querySelector('.gs-title').textContent = o.title;
+  const refreshButton = panel.querySelector('.gs-refresh'), refreshNote = panel.querySelector('.gs-refresh-note');
+  refreshButton.addEventListener('click', () => refreshApp(refreshButton, refreshNote));
   const body = panel.querySelector('.gs-body');
   panel.querySelector('.gs-done').addEventListener('click', () => close());
   // Keep everything that happens in here away from the game.
@@ -166,6 +201,7 @@ export function createSettings(options = {}) {
     button.hidden = true;
     panel.scrollTop = 0;
     o.onOpen(body);
+    showVersion(panel.querySelector('.gs-version'));
     panel.querySelector('.gs-done').focus({ preventScroll: true });
   }
   function close() {
@@ -181,4 +217,91 @@ export function createSettings(options = {}) {
     open, close, body,
     get isOpen() { return isOpen; },
   };
+}
+
+// ---------- About: version and refreshing ----------
+
+// This game's folder name, e.g. "pictures" for /pictures/. Its saved copies
+// are named after it (see engine/sw.js).
+function gameName() {
+  const dirs = location.pathname.split('/').filter(Boolean);
+  if (dirs.length && /\.[a-z0-9]+$/i.test(dirs[dirs.length - 1])) dirs.pop();   // .../index.html
+  return dirs[dirs.length - 1] || '';
+}
+const isMine = (name, key) => key.startsWith(`${name}-v`) && /^\d+(-engine\d+)?$/.test(key.slice(name.length + 2));
+
+// "Version 13.3": the game's version, then the engine's. Read from the copy
+// saved on the phone (so it's the version actually running), or from the
+// server if it hasn't been saved yet.
+async function showVersion(el) {
+  el.textContent = '';
+  let game = null, engine = null;
+  try {
+    const name = gameName();
+    const key = (await caches.keys()).find(k => isMine(name, k));
+    const m = key && key.match(/-v(\d+)-engine(\d+)$/);
+    if (m) [game, engine] = [m[1], m[2]];
+  } catch (_) {}
+  if (!game) {
+    try {
+      const [g, e] = await Promise.all(['sw.js', '../engine/sw.js'].map(f => fetch(f).then(r => r.text())));
+      game = (g.match(/version:\s*(\d+)/) || [])[1];
+      engine = (e.match(/ENGINE_VERSION = (\d+)/) || [])[1];
+    } catch (_) {}
+  }
+  el.textContent = game ? `Version ${game}.${engine || 0}` : '';
+}
+
+// Refresh app: download every file of the game again, straight from the
+// server (skipping any copies the browser is holding on to), replace the
+// copy saved on the phone with them, then restart the game.
+//
+// Nothing is thrown away until everything new has arrived, so on a poor
+// signal or none at all the game keeps working as before. Anything the game
+// keeps for itself (like the pictures in Pictures) isn't touched.
+async function refreshApp(button, note) {
+  const say = text => { note.textContent = text; };
+  button.disabled = true;
+  say('Getting the latest version…');
+  try {
+    const name = gameName();
+    const saved = [];
+    if ('caches' in window) {
+      for (const key of (await caches.keys()).filter(k => isMine(name, k))) {
+        const cache = await caches.open(key);
+        saved.push([cache, await cache.keys()]);
+      }
+    }
+    // Everything saved, plus the page itself in case nothing was saved yet
+    const urls = new Set([new URL('./', location.href).href]);
+    saved.forEach(([, reqs]) => reqs.forEach(r => urls.add(r.url)));
+    const fresh = await Promise.all([...urls].map(async url => {
+      const res = await fetch(url, { cache: 'reload' });
+      if (!res.ok) throw new Error(`${url}: ${res.status}`);
+      return [url, res];
+    }));
+    // All arrived: swap them in
+    for (const [cache] of saved) {
+      await Promise.all(fresh.map(([url, res]) => cache.put(url, res.clone())));
+    }
+    // And check for a new version of the saving itself (sw.js)
+    const reg = 'serviceWorker' in navigator && await navigator.serviceWorker.getRegistration();
+    if (reg) {
+      await reg.update().catch(() => {});
+      const next = reg.installing || reg.waiting;
+      if (next) {
+        await new Promise(resolve => {
+          const check = () => { if (next.state === 'activated' || next.state === 'redundant') resolve(); };
+          next.addEventListener('statechange', check);
+          setTimeout(resolve, 20000);
+          check();
+        });
+      }
+    }
+    say('Done. Restarting…');
+    location.reload();
+  } catch (_) {
+    button.disabled = false;
+    say("Couldn't reach the internet, so nothing has changed. Try again when there's signal or Wi-Fi.");
+  }
 }

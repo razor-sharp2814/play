@@ -111,8 +111,10 @@
   import { audio, noiseBuf, ensureAudio, tone, vary } from '../engine/audio.js';
   import { createParty } from '../engine/party.js';
   import { createTapGuard } from '../engine/taps.js';
+  import { createSettings } from '../engine/settings.js';
 
   startGame();
+  createSettings({ title: 'Dolphins' });   // hold the grey button, top right (engine/settings.js)
 
   let W = 0, H = 0, seaY = 0, waterY = 0, size = 0;
   const ctx = fitCanvas(document.getElementById('scene'), (w, h) => {

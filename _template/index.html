@@ -123,9 +123,14 @@
   // and engine/party.js for what's available.
   import { startGame, keepAwake, fitCanvas } from '../engine/core.js';
   import { audio, ensureAudio, tone, vary } from '../engine/audio.js';
-  import { createParty } from '../engine/party.js';
+  import { createParty } from '../engine/party.js';   // optional: leave out for no counter or party
+  import { createSettings } from '../engine/settings.js';
 
   startGame();
+  // Settings for grown-ups: hold the grey button in the top right. Every game
+  // gets the About part (version, Refresh app, help and links). Add
+  // onOpen(body) to put the game's own settings above it.
+  createSettings({ title: 'CHANGE-ME Game Name' });
 
   let W = 0, H = 0;
   const ctx = fitCanvas(document.getElementById('scene'), (w, h) => { W = w; H = h; });

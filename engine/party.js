@@ -1,5 +1,9 @@
 // The counter in the top left, and the party when it reaches the goal.
 //
+// Optional: a game without a counter or a party (like Pictures) just doesn't
+// import this file, and needs nothing else. The checks in _tests only expect
+// a party from games with a counter on the page.
+//
 // The page needs <div id="counter">…<span id="count">0</span></div>.
 // The engine handles counting, the bump, the fanfare, the "Party!" text and
 // ending the party. Each game adds its own fun through onStart, onUpdate and
@@ -37,6 +41,7 @@ export function createParty(options = {}) {
   let count = 0, t = 0, active = false;
 
   function showCount() {
+    if (!counterEl || !countEl) return;   // no counter on the page: the party still works
     countEl.textContent = count;
     counterEl.classList.remove('bump');
     void counterEl.offsetWidth;   // restart the bump animation
@@ -46,7 +51,7 @@ export function createParty(options = {}) {
 
   function start() {
     active = true; t = 0;
-    counterEl.classList.add('party');
+    if (counterEl) counterEl.classList.add('party');
     o.onStart();
     fanfare(o.fanfareVolume);
     if (navigator.vibrate) navigator.vibrate([40, 60, 40, 60, 80]);
@@ -55,7 +60,7 @@ export function createParty(options = {}) {
   function end() {
     active = false;
     count = 0;
-    counterEl.classList.remove('party');
+    if (counterEl) counterEl.classList.remove('party');
     o.onEnd();
     showCount();
   }

@@ -185,3 +185,13 @@ html, body {
   font: inherit; font-size: 18px;   /* 16px or more, so iPhones don't zoom in */
   -webkit-user-select: text; user-select: text;
 }
+
+/* The About part at the end of every game's settings */
+.gs-about { border-top: 2px solid var(--gs-line); margin-top: 8px; }
+.gs-actions { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0; }
+.gs-panel a { color: inherit; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+@media (hover: hover) and (pointer: fine) { .gs-panel a:hover { color: var(--gs-accent); } }
+.gs-credit { margin: 28px 0 8px; color: var(--gs-soft); font-size: 16px; line-height: 1.6; }
+.gs-credit p { margin: 0 0 10px; }
+.gs-credit nav { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.gs-body:empty + .gs-about { border-top: 0; margin-top: 0; }   /* nothing above it to separate from */

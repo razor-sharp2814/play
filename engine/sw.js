@@ -3,7 +3,7 @@
 //
 // Bump ENGINE_VERSION whenever you change anything in the engine folder.
 // Every game then saves a fresh copy the next time it's opened with signal.
-const ENGINE_VERSION = 3;
+const ENGINE_VERSION = 4;
 // (The fonts are for the settings panel, which matches the listings page.)
 const ENGINE_FILES = ['../engine/engine.css', '../engine/core.js', '../engine/audio.js', '../engine/party.js', '../engine/taps.js', '../engine/settings.js',
   '../fonts/Raleway-SemiBold.woff2', '../fonts/Raleway-Bold.woff2'];
@@ -84,6 +84,9 @@ function saveForOffline({ name, version, files = [] }) {
   self.addEventListener('fetch', e => {
     const req = e.request;
     if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+    // Asked for straight from the server (Refresh app in engine/settings.js):
+    // let it through, rather than answering with the saved copy.
+    if (req.cache === 'reload') return;
     e.respondWith((async () => {
       const cache = await caches.open(CACHE);
       // Opening the game: always use the saved page, whatever is on the end of

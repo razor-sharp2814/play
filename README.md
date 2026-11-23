@@ -41,6 +41,10 @@ Once a game is saved, open it from its own icon. It runs full screen, like an ap
 
 **Laptop or computer:** open the game in Chrome or Edge and click the install icon at the right of the address bar, then **Install**. On a Mac using Safari, choose File, then **Add to Dock**.
 
+## Settings, and getting the latest version
+
+Every game has a grey button in the top right. Press and hold it for 3 seconds (on a computer, click and hold) to open the settings for grown-ups. They show the version number, and have a **Refresh app** button. That downloads the latest version of the game straight away, without waiting for the phone to update it. With no signal, it says so and leaves the game as it was. Anything saved in a game, like the pictures in Pictures, isn't affected.
+
 ## Keeping little hands inside the game
 
 Phones can lock themselves to one app, so little fingers can't swipe out of the game.
@@ -55,9 +59,9 @@ Each game has its own folder, with everything that's special to it. The parts ev
 
 - `engine/core.js`: a sharp, full-screen canvas, and locking the screen down so little fingers can't zoom, scroll or select.
 - `engine/audio.js`: sound made from scratch (no sound files), with helpers for notes, noise and the party fanfare.
-- `engine/party.js`: the counter in the top left, and the party when it reaches 20. Each game adds its own fun to the party.
+- `engine/party.js`: the counter in the top left, and the party when it reaches 20. Each game adds its own fun to the party. It's optional: a game without a counter or party (like Pictures) just doesn't use it.
 - `engine/taps.js`: turning a palm, a fist or a handful of fingers landing together into one tap, so smashing the screen doesn't count ten times.
-- `engine/settings.js`: settings for grown-ups, behind a grey button in the top right that has to be held for 3 seconds with one finger. A tap or a palm does nothing. Games that need settings call `createSettings()` and fill the panel in.
+- `engine/settings.js`: settings for grown-ups, behind a grey button in the top right that has to be held for 3 seconds with one finger (or the mouse, or Enter on a keyboard). A tap or a palm does nothing. Every game calls `createSettings()`, and can add its own settings. All of them end with the same About part: the version number, a **Refresh app** button, an email address for help, and links to this site, Razor Sharp and the legal pages.
 - `engine/engine.css`: the shared page and counter styles.
 - `engine/sw.js`: saving each game on the phone so it works with no signal.
 

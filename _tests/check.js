@@ -19,6 +19,7 @@ const GAMES = fs.readdirSync(ROOT).filter(d =>
 // dropped. offline: nothing gets through.
 let signal = 'fast', requestCount = 0;
 let engineBump = 0;   // pretend ENGINE_VERSION has been bumped this many times
+let pageMarker = '';  // pretend the game's page has changed on the server
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json',
   '.png': 'image/png', '.svg': 'image/svg+xml', '.css': 'text/css' };
 const server = http.createServer((req, res) => {
@@ -34,6 +35,7 @@ const server = http.createServer((req, res) => {
     }
     fs.readFile(file, (err2, data) => {
       if (err2) { res.writeHead(404); return res.end('not found'); }
+      if (pageMarker && /\/(index\.html)?$/.test(url.pathname) && url.pathname !== '/') data = String(data).replace('</body>', `<!--${pageMarker}--></body>`);
       if (engineBump && url.pathname === '/engine/sw.js') {
         data = String(data).replace(/ENGINE_VERSION = (\d+)/, (_, n) => `ENGINE_VERSION = ${+n + engineBump}`);
       }
@@ -45,6 +47,7 @@ const server = http.createServer((req, res) => {
   signal === 'slow' ? setTimeout(send, 2500) : send();
 });
 const setSignal = s => { signal = s; requestCount = 0; };
+const ENGINE_VERSION = +fs.readFileSync(path.join(ROOT, 'engine/sw.js'), 'utf8').match(/ENGINE_VERSION = (\d+)/)[1];
 
 // ---------- Helpers ----------
 let failures = 0;
@@ -80,8 +83,9 @@ async function play(page) {
   page.on('pageerror', e => problems.push(`script error: ${e.message}`));
   page.on('requestfailed', r => problems.push(`couldn't load ${new URL(r.url()).pathname}`));
   const { width, height } = page.viewportSize();
-  // Games with a counter should party; games without one (like Pictures)
-  // just get tapped plenty.
+  // The counter and party are optional (engine/party.js). Games with a
+  // counter should party; games without one (like Pictures) just get tapped
+  // plenty.
   const hasCounter = await page.evaluate(() => !!document.getElementById('counter'));
   let partied = false;
   for (let i = 0; i < (hasCounter ? 80 : 30) && !partied; i++) {
@@ -194,6 +198,50 @@ async function play(page) {
     const offlineProblems = await play(page);
     check(!offlineProblems.length, 'plays offline with everything showing', offlineProblems.slice(0, 3).join('; '));
     check(await open(page, url + '?utm_source=homescreen'), 'opens offline with ?… on the address');
+    await ctx.close();
+
+    // Settings: holding the grey button opens them, with the version and a
+    // Refresh app button that gets the latest version (or, with no signal,
+    // changes nothing)
+    [ctx, page] = await fresh();
+    setSignal('fast');
+    await open(page, url);
+    await waitUntilSaved(page, 5000);
+    await page.reload();
+    await page.waitForTimeout(500);
+    const hold = await page.locator('.gs-hold').boundingBox();
+    await page.mouse.move(hold.x + hold.width / 2, hold.y + hold.height / 2);
+    await page.mouse.down(); await page.waitForTimeout(3400); await page.mouse.up();
+    check(await page.locator('.gs-panel').isVisible(), 'holding the grey button opens the settings');
+    const swVersion = fs.readFileSync(path.join(ROOT, game, 'sw.js'), 'utf8').match(/version:\s*(\d+)/)[1];
+    await page.waitForTimeout(300);
+    const version = await page.locator('.gs-version').textContent();
+    check(version === `Version ${swVersion}.${ENGINE_VERSION}`, 'settings show the version', version);
+    const links = await page.locator('.gs-panel a').evaluateAll(as => as.map(a => a.href));
+    check(['mailto:hello@razorsharp.digital', 'https://play.razorsharp.digital/', 'https://www.razorsharp.digital/terms-and-conditions',
+      'https://www.razorsharp.digital/privacy-policy', 'https://www.razorsharp.digital/cookies-policy'].every(l => links.includes(l)),
+      'settings have the help email and links', links.join(' '));
+    const tapsBefore = await page.evaluate(() => (document.getElementById('count') || {}).textContent);
+    await page.locator('.gs-refresh').click({ trial: true });
+    setSignal('offline');
+    await page.locator('.gs-refresh').click();
+    await page.waitForFunction(() => /Couldn.t reach/.test(document.querySelector('.gs-refresh-note').textContent), null, { timeout: 15000 }).catch(() => {});
+    check(/Couldn.t reach/.test(await page.locator('.gs-refresh-note').textContent()), 'Refresh app with no signal says so');
+    check(await open(page, url), '...and the game still opens offline');
+    check(tapsBefore === await page.evaluate(() => (document.getElementById('count') || {}).textContent), "the settings didn't count as taps in the game");
+    setSignal('fast');
+    await page.mouse.move(hold.x + hold.width / 2, hold.y + hold.height / 2);
+    await page.mouse.down(); await page.waitForTimeout(3400); await page.mouse.up();
+    pageMarker = `refreshed-${game}`;
+    await page.evaluate(() => { window.__beforeRefresh = true; });
+    await page.locator('.gs-refresh').click();
+    const restarted = await (async () => { for (let i = 0; i < 60; i++) { await page.waitForTimeout(500); if (!(await page.evaluate(() => window.__beforeRefresh).catch(() => true))) return true; } return false; })();
+    check(restarted, 'Refresh app restarts the game');
+    pageMarker = '';
+    setSignal('offline');
+    await page.waitForTimeout(500);
+    check(await open(page, url) && (await page.content()).includes(`refreshed-${game}`), 'Refresh app saves the latest version from the server for offline play');
+    setSignal('fast');
     await ctx.close();
 
     // First visit on a patchy signal still saves, then works offline
