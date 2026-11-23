@@ -80,16 +80,21 @@ async function play(page) {
   page.on('pageerror', e => problems.push(`script error: ${e.message}`));
   page.on('requestfailed', r => problems.push(`couldn't load ${new URL(r.url()).pathname}`));
   const { width, height } = page.viewportSize();
+  // Games with a counter should party; games without one (like Pictures)
+  // just get tapped plenty.
+  const hasCounter = await page.evaluate(() => !!document.getElementById('counter'));
   let partied = false;
-  for (let i = 0; i < 80 && !partied; i++) {
+  for (let i = 0; i < (hasCounter ? 80 : 30) && !partied; i++) {
     await page.mouse.click(width / 2, height / 2);
     await page.waitForTimeout(250);
-    partied = await page.evaluate(() => document.getElementById('counter').classList.contains('party'));
+    if (hasCounter) partied = await page.evaluate(() => document.getElementById('counter').classList.contains('party'));
   }
-  if (!partied) problems.push('no party after 80 taps');
-  await page.waitForTimeout(3500);   // let the party finish
-  const count = await page.evaluate(() => document.getElementById('count').textContent);
-  if (partied && count !== '0') problems.push(`counter shows ${count} after the party, not 0`);
+  if (hasCounter) {
+    if (!partied) problems.push('no party after 80 taps');
+    await page.waitForTimeout(3500);   // let the party finish
+    const count = await page.evaluate(() => document.getElementById('count').textContent);
+    if (partied && count !== '0') problems.push(`counter shows ${count} after the party, not 0`);
+  }
   for (let i = 0; i < 12; i++) { await page.mouse.wheel(0, 400); await page.waitForTimeout(450); }
   // every picture on the page should actually have loaded
   const broken = await page.evaluate(() => [...document.images].filter(i => i.src && !i.hidden && !(i.complete && i.naturalWidth)).map(i => i.src));
@@ -118,7 +123,7 @@ async function play(page) {
     setSignal('fast');
     await open(page, url);
     const problems = await play(page);
-    check(!problems.length, 'plays, counts and parties with no errors', problems.slice(0, 3).join('; '));
+    check(!problems.length, 'plays (counting and partying, if it has a counter) with no errors', problems.slice(0, 3).join('; '));
     await ctx.close();
 
     // A palm or a handful of fingers landing together counts as one tap
@@ -127,6 +132,7 @@ async function play(page) {
     await open(page, url);
     await page.waitForTimeout(500);
     const smashed = await page.evaluate(async () => {
+      if (!document.getElementById('count')) return 'no counter';
       const count = () => +document.getElementById('count').textContent;
       const wait = ms => new Promise(r => setTimeout(r, ms));
       const x = innerWidth / 2, y = innerHeight / 2, el = document.elementFromPoint(x, y);
@@ -139,7 +145,7 @@ async function play(page) {
       await wait(500);
       return count() - before;
     });
-    check(smashed === 1, 'a handful of fingers at once counts as one tap', `counted ${smashed}`);
+    if (smashed !== 'no counter') check(smashed === 1, 'a handful of fingers at once counts as one tap', `counted ${smashed}`);
     await ctx.close();
 
     // Sound: plays when an iPhone is on silent, and comes back after a phone
@@ -180,7 +186,7 @@ async function play(page) {
     const saved = Object.entries(await savedFiles(page)).filter(([k]) => k.startsWith(`${game}-`));
     check(saved.length === 1, 'keeps exactly one saved copy', saved.map(([k]) => k).join(', '));
     const files = saved.length ? saved[0][1] : [];
-    const missing = ['/engine/core.js', '/engine/audio.js', '/engine/party.js', '/engine/taps.js', '/engine/engine.css', `/${game}/index.html`]
+    const missing = ['/engine/core.js', '/engine/audio.js', '/engine/party.js', '/engine/taps.js', '/engine/settings.js', '/engine/engine.css', `/${game}/index.html`]
       .filter(f => !files.includes(f));
     check(!missing.length, 'saved copy includes the engine', missing.join(', '));
     setSignal('offline');
@@ -235,6 +241,134 @@ async function play(page) {
       const old = before.find(k => k.startsWith(`${game}-`));
       check(after.some(k => k.startsWith(`${game}-`) && k !== old), `${game} saves a fresh copy when the engine version is bumped`);
     }
+    await ctx.close();
+  }
+
+  // ---------- Pictures: grown-up settings, adding and looking at pictures ----------
+  if (GAMES.includes('pictures')) {
+    console.log('\npictures: settings and photos');
+    setSignal('fast');
+    const [ctx, page] = await fresh();
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await open(page, `${BASE}/pictures/`);
+    await page.waitForTimeout(500);
+    const visible = sel => page.evaluate(s => { const e = document.querySelector(s); return !!e && !e.hidden && !e.closest('[hidden]'); }, sel);
+    check(await visible('#empty'), 'shows "no pictures yet" to start with');
+
+    const btn = await page.locator('.gs-hold').boundingBox();
+    const bx = btn.x + btn.width / 2, by = btn.y + btn.height / 2;
+
+    // A quick press doesn't open the settings
+    await page.mouse.move(bx, by); await page.mouse.down(); await page.waitForTimeout(600); await page.mouse.up();
+    await page.waitForTimeout(300);
+    check(!(await visible('.gs-panel')), "a short press on the settings button doesn't open them");
+    const hint = await page.evaluate(() => { const b = document.querySelector('.gs-hold'); return b.classList.contains('gs-nudge') && b.querySelector('.gs-hold-hint').textContent; });
+    check(/Click and hold for 3 seconds/.test(hint || ''), 'a click shows how to open the settings', String(hint));
+
+    // A palm (the button held, plus another finger anywhere) doesn't either
+    await page.evaluate(async ([x, y]) => {
+      const b = document.querySelector('.gs-hold');
+      const fire = (el, type, id, px, py) => el.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: px, clientY: py, bubbles: true, cancelable: true }));
+      fire(b, 'pointerdown', 31, x, y);
+      await new Promise(r => setTimeout(r, 40));
+      fire(document.body, 'pointerdown', 32, x - 60, y + 40);
+      await new Promise(r => setTimeout(r, 3600));
+      fire(b, 'pointerup', 31, x, y); fire(document.body, 'pointerup', 32, x - 60, y + 40);
+    }, [bx, by]);
+    check(!(await visible('.gs-panel')), "a palm on the settings button doesn't open them");
+
+    // Holding it for 3 seconds does
+    await page.mouse.down(); await page.waitForTimeout(3400); await page.mouse.up();
+    await page.waitForTimeout(200);
+    check(await visible('.gs-panel'), 'holding the settings button for 3 seconds opens them');
+
+    // Make an album, type a name (typing must work inside the settings)
+    await page.getByRole('button', { name: 'New album' }).click();
+    await page.locator('#pic-name').fill('');
+    await page.locator('#pic-name').focus();
+    await page.keyboard.type('Seaside');
+    await page.keyboard.press('Enter');
+    check(await page.locator('#pic-name').inputValue() === 'Seaside', 'typing works in the settings');
+
+    // Add pictures: two real ones (one huge) and one that isn't a picture
+    const makeImage = (w, h, colour) => page.evaluate(([w, h, colour]) => {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const g = c.getContext('2d'); g.fillStyle = colour; g.fillRect(0, 0, w, h);
+      return c.toDataURL('image/png').split(',')[1];
+    }, [w, h, colour]);
+    const images = [
+      { name: 'big.png', mimeType: 'image/png', buffer: Buffer.from(await makeImage(3000, 1500, '#e63946'), 'base64') },
+      { name: 'small.png', mimeType: 'image/png', buffer: Buffer.from(await makeImage(400, 600, '#457b9d'), 'base64') },
+      { name: 'broken.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('not a picture') },
+    ];
+    await page.locator('.gs-panel input[type=file]').setInputFiles(images);
+    await page.waitForFunction(() => document.querySelectorAll('.pic-grid button').length === 2, null, { timeout: 10000 }).catch(() => {});
+    check(await page.locator('.pic-grid button').count() === 2, 'adds the pictures that can be read');
+    const note = await page.locator('.pic-progress').textContent();
+    check(/couldn.t be read/.test(note), 'says when a picture couldn’t be read', note);
+    const sizes = await page.evaluate(() => new Promise(resolve => {
+      indexedDB.open('pictures').onsuccess = ev => {
+        ev.target.result.transaction('photos').objectStore('photos').getAll().onsuccess = async e2 => {
+          resolve(await Promise.all(e2.target.result.map(async p => { const b = await createImageBitmap(p.full); return [b.width, b.height, p.full.type]; })));
+        };
+      };
+    }));
+    check(sizes.length && sizes[0][0] === 2048 && sizes[0][1] === 1024 && sizes[0][2] === 'image/jpeg', 'big pictures are shrunk to screen size', JSON.stringify(sizes));
+
+    // Done: straight into the pictures (only one album, so no album choice)
+    await page.getByRole('button', { name: 'Done' }).click();
+    await page.waitForTimeout(500);
+    const onScreen = () => page.evaluate(() => {
+      const s = [...document.querySelectorAll('.slide')].find(e => e.style.left === '0%');
+      const img = s && s.querySelector('.photo');
+      return { id: s && s.dataset.photo, shown: !!(img && img.complete && img.naturalWidth) };
+    });
+    const first = await onScreen();
+    check(await visible('#viewer') && first.shown, 'shows the first picture after closing the settings');
+    check(!(await visible('#home')), 'no albums button with only one album');
+
+    const { width, height } = page.viewportSize();
+    await page.mouse.move(width * 0.7, height * 0.3); await page.mouse.down();
+    await page.mouse.move(width * 0.4, height * 0.3, { steps: 5 }); await page.mouse.move(width * 0.1, height * 0.3, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(700);
+    const second = await onScreen();
+    check(second.id !== first.id && second.shown, 'swiping shows the next picture');
+    await page.mouse.click(width / 2, height / 2);
+    await page.waitForTimeout(700);
+    check((await onScreen()).id === first.id, 'tapping shows the next picture (and goes round again at the end)');
+    await page.locator('#prev').click();
+    await page.waitForTimeout(700);
+    check((await onScreen()).id === second.id, 'on a computer, the arrow goes back a picture');
+
+    // Pictures are still there offline, after the game is closed and reopened
+    await waitUntilSaved(page, 5000);
+    setSignal('offline');
+    await page.reload();
+    await page.waitForTimeout(800);
+    check(await visible('#viewer') && (await onScreen()).shown, 'pictures are still there offline after reopening');
+    setSignal('fast');
+
+    // A second album: now there's a choice of albums. (Opening the settings
+    // from the keyboard this time: Tab to the button, hold down Enter.)
+    await page.locator('.gs-hold').focus();
+    await page.keyboard.down('Enter'); await page.waitForTimeout(3400); await page.keyboard.up('Enter');
+    check(await visible('.gs-panel'), 'holding Enter on the settings button opens them');
+    await page.getByRole('button', { name: 'New album' }).click();
+    await page.locator('.gs-panel input[type=file]').setInputFiles([images[1]]);
+    await page.waitForFunction(() => document.querySelectorAll('.pic-grid button').length === 1, null, { timeout: 10000 }).catch(() => {});
+    await page.getByRole('button', { name: 'Done' }).click();
+    await page.waitForTimeout(500);
+    check(await visible('#viewer') && await visible('#home'), 'stays on the same pictures, now with an albums button');
+    await page.locator('#home').click();
+    await page.waitForTimeout(500);
+    check(await visible('#albums') && await page.locator('.album').count() === 2, 'the albums button shows a choice of both albums');
+    await page.locator('.album').last().click();
+    await page.waitForTimeout(500);
+    check(await visible('#viewer') && (await onScreen()).shown, 'choosing an album shows its pictures');
+
+    check(!errors.length, 'no script errors', errors.slice(0, 3).join('; '));
     await ctx.close();
   }
 

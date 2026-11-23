@@ -3,8 +3,10 @@
 //
 // Bump ENGINE_VERSION whenever you change anything in the engine folder.
 // Every game then saves a fresh copy the next time it's opened with signal.
-const ENGINE_VERSION = 2;
-const ENGINE_FILES = ['../engine/engine.css', '../engine/core.js', '../engine/audio.js', '../engine/party.js', '../engine/taps.js'];
+const ENGINE_VERSION = 3;
+// (The fonts are for the settings panel, which matches the listings page.)
+const ENGINE_FILES = ['../engine/engine.css', '../engine/core.js', '../engine/audio.js', '../engine/party.js', '../engine/taps.js', '../engine/settings.js',
+  '../fonts/Raleway-SemiBold.woff2', '../fonts/Raleway-Bold.woff2'];
 const GAME_FILES = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 // Download one file, trying again a few times if a poor signal drops it.

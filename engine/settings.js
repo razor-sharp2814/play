@@ -1,0 +1,184 @@
+// Settings for grown-ups, kept out of reach of little fingers.
+//
+// A small grey button sits in the top right. A tap does nothing (apart from
+// showing a short "hold for 3 seconds" hint): it has to be held for a few
+// seconds, with one finger and without sliding off, while a ring fills up
+// around it. Then the settings open over the game. On a computer it's the
+// same with the mouse, or Tab to the button and hold down Enter or Space.
+//
+// A palm, a fist or a second finger landing anywhere on the screen cancels
+// the hold, so smashing the corner of the screen won't get in.
+//
+//   const settings = createSettings({
+//     title: 'Settings',
+//     onOpen(body) { ... },      // fill `body` with the game's settings
+//     onClose() { ... },         // closed again: pick up any changes
+//   });
+//   settings.open();             // open straight away (e.g. first time setup)
+//   settings.close();
+//   settings.isOpen
+//
+// Taps, swipes and key presses inside the settings don't reach the game, and
+// the settings can scroll and be typed into (see lockDown in core.js).
+//
+// For a matching look, build the settings from the shared classes in
+// engine.css: .gs-section, .gs-heading, .gs-note, .gs-row, .gs-button
+// (with .gs-primary or .gs-danger), .gs-input.
+
+const RING = 2 * Math.PI * 25;   // length of the ring's circle (r = 25)
+
+export function createSettings(options = {}) {
+  const o = {
+    title: 'Settings',
+    holdFor: 3,          // seconds
+    onOpen() {}, onClose() {},
+    ...options,
+  };
+
+  // ---------- The button ----------
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'gs-hold';
+  button.setAttribute('aria-label', `${o.title} (press and hold for ${o.holdFor} seconds)`);
+  button.title = `${o.title}: click and hold for ${o.holdFor} seconds`;   // shown on hover, on a computer
+  button.innerHTML = `
+    <svg viewBox="0 0 56 56" aria-hidden="true">
+      <circle class="gs-hold-ring" cx="28" cy="28" r="25" stroke-dasharray="${RING}" stroke-dashoffset="${RING}" />
+      <path class="gs-hold-cog" d="M28 19.5l2 .3.7 2.6 1.6.7 2.4-1.3 2.9 2.9-1.3 2.4.7 1.6 2.6.7v4.1l-2.6.7-.7 1.6 1.3 2.4-2.9 2.9-2.4-1.3-1.6.7-.7 2.6h-4.1l-.7-2.6-1.6-.7-2.4 1.3-2.9-2.9 1.3-2.4-.7-1.6-2.6-.7v-4.1l2.6-.7.7-1.6-1.3-2.4 2.9-2.9 2.4 1.3 1.6-.7.7-2.6zM28 25a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6z" transform="translate(0 -.8)" />
+    </svg>
+    <span class="gs-hold-hint">Keep holding</span>`;
+  document.body.appendChild(button);
+  const ring = button.querySelector('.gs-hold-ring');
+  const hint = button.querySelector('.gs-hold-hint');
+
+  // Every finger on the screen, wherever it is, so a palm can be spotted.
+  const fingers = new Set();
+  document.addEventListener('pointerdown', ev => {
+    if (ev.pointerType === 'mouse') return;
+    fingers.add(ev.pointerId);
+    if (hold && ev.pointerId !== hold.id) cancelHold();   // another finger joined: not a grown-up
+  }, true);
+  const lift = ev => fingers.delete(ev.pointerId);
+  document.addEventListener('pointerup', lift, true);
+  document.addEventListener('pointercancel', lift, true);
+  // a finger lifted while the game was put away never says so
+  document.addEventListener('visibilitychange', () => { fingers.clear(); cancelHold(); });
+
+  // Start filling the ring. id is the finger (or mouse) holding the button,
+  // or 'key' for Enter or Space held down on a keyboard.
+  let hold = null;   // { id, x, y, start, raf }
+  function startHold(id, x, y) {
+    if (hold || isOpen) return;
+    clearTimeout(nudgeTimer);
+    button.classList.remove('gs-nudge');
+    hint.textContent = 'Keep holding';
+    hold = { id, x, y, start: performance.now() };
+    button.classList.add('gs-holding');
+    const tick = now => {
+      if (!hold) return;
+      const done = Math.min(1, (now - hold.start) / (o.holdFor * 1000));
+      ring.style.strokeDashoffset = RING * (1 - done);
+      if (done >= 1) { cancelHold(); open(); return; }
+      hold.raf = requestAnimationFrame(tick);
+    };
+    hold.raf = requestAnimationFrame(tick);
+  }
+  function cancelHold() {
+    if (!hold) return;
+    cancelAnimationFrame(hold.raf);
+    hold = null;
+    button.classList.remove('gs-holding');
+    ring.style.strokeDashoffset = RING;
+  }
+  // Let go too soon (a click, say): show how to open it. On a computer
+  // nothing else asks to be held down, so without this it seems broken.
+  let nudgeTimer;
+  function nudge(how) {
+    hint.textContent = `${how} and hold for ${o.holdFor} seconds`;
+    button.classList.add('gs-nudge');
+    clearTimeout(nudgeTimer);
+    nudgeTimer = setTimeout(() => button.classList.remove('gs-nudge'), 2500);
+  }
+
+  button.addEventListener('pointerdown', ev => {
+    ev.preventDefault();
+    ev.stopPropagation();                 // the game doesn't see it as a tap
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    if (fingers.size > 1) return;         // landed as part of a palm or fist
+    try { button.setPointerCapture(ev.pointerId); } catch (_) {}
+    startHold(ev.pointerId, ev.clientX, ev.clientY);
+  });
+  button.addEventListener('pointermove', ev => {
+    if (hold && ev.pointerId === hold.id && Math.hypot(ev.clientX - hold.x, ev.clientY - hold.y) > 24) cancelHold();
+  });
+  button.addEventListener('pointerup', ev => {
+    if (!hold || ev.pointerId !== hold.id) return;
+    cancelHold();
+    nudge(ev.pointerType === 'mouse' ? 'Click' : 'Press');
+  });
+  ['pointercancel', 'lostpointercapture'].forEach(e =>
+    button.addEventListener(e, ev => { if (hold && ev.pointerId === hold.id) cancelHold(); }));
+  ['pointerup', 'click', 'wheel'].forEach(e => button.addEventListener(e, ev => ev.stopPropagation()));
+
+  // On a keyboard: Tab to the button, then hold down Enter or Space.
+  button.addEventListener('keydown', ev => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    ev.stopPropagation();                 // the game doesn't see the key
+    if (!ev.repeat) startHold('key');
+  });
+  button.addEventListener('keyup', ev => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    ev.stopPropagation();
+    if (hold && hold.id === 'key') { cancelHold(); nudge('Press Enter'); }
+  });
+  button.addEventListener('blur', () => { if (hold && hold.id === 'key') cancelHold(); });
+
+  // ---------- The panel ----------
+  const panel = document.createElement('div');
+  panel.className = 'gs-panel';
+  panel.hidden = true;
+  panel.dataset.unlocked = '';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-label', o.title);
+  panel.innerHTML = `
+    <div class="gs-bar">
+      <h2 class="gs-title"></h2>
+      <button type="button" class="gs-button gs-primary gs-done">Done</button>
+    </div>
+    <div class="gs-body"></div>`;
+  panel.querySelector('.gs-title').textContent = o.title;
+  const body = panel.querySelector('.gs-body');
+  panel.querySelector('.gs-done').addEventListener('click', () => close());
+  // Keep everything that happens in here away from the game.
+  ['pointerdown', 'pointerup', 'pointermove', 'click', 'wheel', 'keydown', 'keyup', 'touchstart', 'touchend'].forEach(e =>
+    panel.addEventListener(e, ev => ev.stopPropagation()));
+  panel.addEventListener('keydown', ev => { if (ev.key === 'Escape') close(); });
+  document.body.appendChild(panel);
+
+  let isOpen = false;
+  function open() {
+    if (isOpen) return;
+    isOpen = true;
+    if (navigator.vibrate) navigator.vibrate(30);
+    body.replaceChildren();
+    panel.hidden = false;
+    button.hidden = true;
+    panel.scrollTop = 0;
+    o.onOpen(body);
+    panel.querySelector('.gs-done').focus({ preventScroll: true });
+  }
+  function close() {
+    if (!isOpen) return;
+    isOpen = false;
+    panel.hidden = true;
+    button.hidden = false;
+    body.replaceChildren();
+    o.onClose();
+  }
+
+  return {
+    open, close, body,
+    get isOpen() { return isOpen; },
+  };
+}

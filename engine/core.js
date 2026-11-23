@@ -12,11 +12,16 @@ export function startGame() {
 
 // Stop long-presses, zooming, text selection, scrolling and key presses from
 // doing anything except play the game.
+//
+// Anything inside an element marked data-unlocked (such as the grown-ups'
+// settings in engine/settings.js) is left alone, so it can scroll and be
+// typed into as normal.
+const unlocked = ev => ev.target instanceof Element && !!ev.target.closest('[data-unlocked]');
 export function lockDown() {
-  ['contextmenu', 'dragstart', 'selectstart', 'gesturestart'].forEach(e =>
-    document.addEventListener(e, ev => ev.preventDefault()));
-  document.addEventListener('touchmove', ev => ev.preventDefault(), { passive: false });
-  document.addEventListener('keydown', ev => ev.preventDefault());
+  const block = ev => { if (!unlocked(ev)) ev.preventDefault(); };
+  ['contextmenu', 'dragstart', 'selectstart', 'gesturestart'].forEach(e => document.addEventListener(e, block));
+  document.addEventListener('touchmove', block, { passive: false });
+  document.addEventListener('keydown', block);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
 }
 

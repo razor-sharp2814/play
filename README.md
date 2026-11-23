@@ -22,6 +22,15 @@ A golden-hour sea where purple dolphins live, and if you're lucky, a rare pink o
 - Every few seconds a dolphin pops its head out of the water to say hello.
 - Make the dolphins jump 20 times for a party!
 
+### Pictures
+
+Your own photos, one at a time, with nothing to press by mistake.
+
+- Swipe or tap for the next picture. On a computer, scroll or use the arrow keys.
+- With more than one album, little ones choose which to look at, and a button in the top left goes back to the albums.
+- Grown-ups press and hold the grey button in the top right for 3 seconds to make albums and choose pictures. On Android, the phone's picker usually shows your Google Photos albums too.
+- Pictures are copied into the game on that phone only, shrunk to screen size and with their hidden details (like where they were taken) left out. Nothing is uploaded.
+
 ## Getting a game on your home screen
 
 Once a game is saved, open it from its own icon. It runs full screen, like an app, and works without signal or Wi-Fi. Open it once with signal first so it can save itself.
@@ -48,6 +57,7 @@ Each game has its own folder, with everything that's special to it. The parts ev
 - `engine/audio.js`: sound made from scratch (no sound files), with helpers for notes, noise and the party fanfare.
 - `engine/party.js`: the counter in the top left, and the party when it reaches 20. Each game adds its own fun to the party.
 - `engine/taps.js`: turning a palm, a fist or a handful of fingers landing together into one tap, so smashing the screen doesn't count ten times.
+- `engine/settings.js`: settings for grown-ups, behind a grey button in the top right that has to be held for 3 seconds with one finger. A tap or a palm does nothing. Games that need settings call `createSettings()` and fill the panel in.
 - `engine/engine.css`: the shared page and counter styles.
 - `engine/sw.js`: saving each game on the phone so it works with no signal.
 
