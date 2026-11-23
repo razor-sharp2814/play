@@ -22,6 +22,16 @@ A golden-hour sea where purple dolphins live, and if you're lucky, a rare pink o
 - Every few seconds a dolphin pops its head out of the water to say hello.
 - Make the dolphins jump 20 times for a party! Grown-ups can switch the party off, or change it to 10, 40 or 80, in the settings.
 
+### Bubbles
+
+A sky full of bubbles, drifting up from the bottom of the screen. The sky slowly changes colour, through blue, lilac, peach, mint and more.
+
+- Tap a bubble to pop it. Every pop is a different sound from the one before, all from the same happy scale, so lots of pops together still sound nice. Big bubbles pop lower.
+- Tap anywhere else for a little bubble, or press and hold to blow a great big one, growing from your finger. Move your finger to carry it about, and let go (or flick) to send it floating off. A bubble being blown pushes the others out of the way.
+- Big bubbles burst into a handful of little ones, which can be popped too.
+- Every so often a sparkly bubble with a golden star inside drifts by. Pop it for a shower of stars and a twinkly tune, and the star flies into the golden stars counter, under the bubble counter. The stars don't count towards the party, and the collection is kept on that device from one go to the next. Grown-ups can start it again from 0 in the settings.
+- Pop or blow 20 bubbles for a party! Grown-ups can switch the party off, or change it to 10, 40 or 80, in the settings.
+
 ### Pictures
 
 Your own photos, one at a time, with nothing to press by mistake.

@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#3d8fc4">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Bubbles</title>
+<!-- Link previews (Slack, WhatsApp, Messages and so on). Make the picture
+     with: cd _tests && npm run previews -->
+<meta name="description" content="A sky full of bubbles. Tap to pop them, each with its own sound, or press and hold to blow a great big one.">
+<meta name="author" content="Kerri Sharp">
+<link rel="canonical" href="https://play.razorsharp.digital/bubbles/">
+<meta property="og:site_name" content="Games made by Razor Sharp">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_GB">
+<meta property="og:title" content="Bubbles">
+<meta property="og:description" content="Pop bubbles, or hold to blow a big one">
+<meta property="og:url" content="https://play.razorsharp.digital/bubbles/">
+<meta property="og:image" content="https://play.razorsharp.digital/bubbles/preview.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Bubbles. Pop bubbles, or hold to blow a big one">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bubbles">
+<meta name="twitter:description" content="Pop bubbles, or hold to blow a big one">
+<meta name="twitter:image" content="https://play.razorsharp.digital/bubbles/preview.png">
+<meta name="twitter:image:alt" content="Bubbles. Pop bubbles, or hold to blow a big one">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "VideoGame",
+      "@id": "https://play.razorsharp.digital/bubbles/#game",
+      "name": "Bubbles",
+      "description": "A sky full of bubbles. Tap to pop them, each with its own sound, or press and hold to blow a great big one.",
+      "url": "https://play.razorsharp.digital/bubbles/",
+      "image": "https://play.razorsharp.digital/bubbles/icon-512.png",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Any (runs in a web browser)",
+      "gamePlatform": "Web browser",
+      "playMode": "SinglePlayer",
+      "inLanguage": "en-GB",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "GBP"
+      },
+      "author": {
+        "@id": "https://www.razorsharp.digital/#organization"
+      },
+      "publisher": {
+        "@id": "https://www.razorsharp.digital/#organization"
+      },
+      "isPartOf": {
+        "@id": "https://play.razorsharp.digital/#website"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Games by Razor Sharp",
+          "item": "https://play.razorsharp.digital/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Bubbles",
+          "item": "https://play.razorsharp.digital/bubbles/"
+        }
+      ]
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://www.razorsharp.digital/#organization",
+      "name": "Razor Sharp",
+      "url": "https://www.razorsharp.digital",
+      "logo": "https://www.razorsharp.digital/meta/index.png",
+      "founder": {
+        "@type": "Person",
+        "name": "Kerri Sharp",
+        "url": "https://www.razorsharp.digital/about"
+      },
+      "sameAs": [
+        "https://www.linkedin.com/company/razor-sharp-2814/",
+        "https://www.facebook.com/razorsharp2814/"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://play.razorsharp.digital/#website",
+      "name": "Games made by Razor Sharp",
+      "url": "https://play.razorsharp.digital/",
+      "inLanguage": "en-GB",
+      "publisher": {
+        "@id": "https://www.razorsharp.digital/#organization"
+      }
+    }
+  ]
+}
+</script>
+<link rel="stylesheet" href="../engine/engine.css">
+<style>
+  html, body { background: #3d8fc4; }
+  canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* Bubble counter, top left (the shared parts are in engine.css) */
+  #counter {
+    gap: 8px;
+    padding: 5px 16px 5px 6px;
+    background: rgba(20, 70, 120, 0.32);
+    color: #fff;
+  }
+  #counter .bubble {
+    width: 32px; height: 32px; border-radius: 50%;
+    background:
+      radial-gradient(ellipse 30% 18% at 32% 28%, rgba(255, 255, 255, 0.95) 60%, transparent 100%),
+      radial-gradient(circle, rgba(255, 255, 255, 0.06) 50%, rgba(190, 240, 255, 0.5) 78%, rgba(255, 190, 240, 0.9) 100%);
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.65);
+  }
+  #counter.party { background: rgba(255, 255, 255, 0.3); }
+
+  /* Golden stars counter, under the bubble counter (moving up into its place
+     when the party is switched off). It doesn't count towards the party. */
+  #stars {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 68px);
+    left: calc(env(safe-area-inset-left, 0px) + 14px);
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 16px 5px 7px;
+    border-radius: 999px;
+    background: rgba(20, 70, 120, 0.32);
+    color: #fff;
+    font: 700 28px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    transition: transform 0.15s ease-out;
+  }
+  #counter[hidden] + #stars { top: calc(env(safe-area-inset-top, 0px) + 14px); }
+  #stars svg { width: 30px; height: 30px; fill: #ffd35a; stroke: #fff; stroke-width: 1.6; stroke-linejoin: round; }
+  #stars.bump { transform: scale(1.25); }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="counter" role="status" aria-label="Bubbles"><span class="bubble"></span><span id="count">0</span></div>
+<div id="stars" role="status" aria-label="Golden stars"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z"/></svg><span id="star-count">0</span></div>
+
+<script type="module">
+  import { startGame, keepAwake, fitCanvas, gameName } from '../engine/core.js';
+  import { audio, noiseBuf, ensureAudio, tone, noise, vary } from '../engine/audio.js';
+  import { createParty } from '../engine/party.js';
+  import { createTapGuard } from '../engine/taps.js';
+  import { createSettings } from '../engine/settings.js';
+
+  startGame();
+  // Settings for grown-ups: hold the grey button, top right (engine/settings.js).
+  // The party settings come from engine/party.js.
+  // The party settings come from engine/party.js; the golden stars are below.
+  createSettings({ title: 'Bubbles', onOpen: body => { party.settings(body); starSettings(body); } });
+
+  let W = 0, H = 0, unit = 0;
+  const ctx = fitCanvas(document.getElementById('scene'), (w, h) => { W = w; H = h; unit = Math.min(w, h); });
+
+  // Sizes are fractions of the screen, so they fit any device
+  const small = () => unit * 0.07;    // a quick tap makes one this big (radius)
+  const big = () => unit * 0.36;      // holding grows it up to this big
+  const HOLD_TIME = 2.6;              // seconds of holding to blow the biggest bubble
+  const HOLD_EXTRA = 0.7;             // then it wobbles this long before floating off by itself
+  const BLOWING = 0.15;               // seconds held before it counts as blowing (not a tap)
+  const AMBIENT = 6;                  // bubbles drifting about with no one blowing them
+  const MAX = 45, PARTY_MAX = 90;     // most bubbles on screen at once
+  const TOUCH_SLACK = 16;             // px: little fingers aren't very precise
+  const SPARKLY_CHANCE = 0.12, SPARKLY_AT_LEAST_EVERY = 10;   // the rare sparkly bubble
+
+  // ---------- Sound (helpers are in engine/audio.js) ----------
+  // Every pop is a note from the same happy scale (C major pentatonic), so any
+  // mix of pops sounds nice together. Each pop picks a different note and a
+  // different kind of pop from the one before, so no two in a row are the same.
+  const NOTES = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98];
+  const POPS = [
+    (f, v) => tone('sine', f, f * 1.8, 0, 0.09, 0.22 * v),                                     // plip: a quick rising drop
+    (f, v) => tone('sine', f * 1.6, f * 0.6, 0, 0.16, 0.22 * v),                               // bloop: a falling drip
+    (f, v) => { tone('sine', f, f, 0, 0.5, 0.16 * v); tone('sine', f * 2.01, f * 2.01, 0, 0.25, 0.05 * v); },   // ding: a little bell
+    (f, v) => boing(f, v),                                                                      // boing: a wobbly spring
+    (f, v) => { tone('sine', f, f * 1.5, 0, 0.06, 0.18 * v); tone('sine', f * 1.25, f * 1.9, 0.07, 0.08, 0.18 * v); },   // pip-pip
+    (f, v) => tone('triangle', f * 1.2, f * 1.7, 0, 0.12, 0.16 * v),                           // squeak
+    (f, v) => { tone('triangle', f, f, 0, 0.28, 0.2 * v); tone('sine', f / 2, f / 2.3, 0, 0.12, 0.14 * v); },   // tock: a xylophone
+  ];
+  let lastNote = -1, lastPop = -1;
+  const pickNot = (n, last) => { let i; do i = Math.floor(Math.random() * n); while (n > 1 && i === last); return i; };
+
+  function popSound(r, vol = 1) {
+    if (!audio) return;
+    lastNote = pickNot(NOTES.length, lastNote);
+    lastPop = pickNot(POPS.length, lastPop);
+    // bigger bubbles sing lower, a whole octave (or two) down, so it stays in tune
+    const size = r / big();
+    const f = NOTES[lastNote] / (size > 0.75 ? 4 : size > 0.4 ? 2 : 1);
+    POPS[lastPop](f, vol);
+    noise(0, 0.035, 0.12 * vol, 'highpass', 3000, 6000, 0.7);   // the little "pop" every bubble makes
+  }
+
+  function boing(f, v) {
+    const t = audio.currentTime;
+    const osc = audio.createOscillator(), lfo = audio.createOscillator(), depth = audio.createGain(), g = audio.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(f * 0.7, t);
+    osc.frequency.exponentialRampToValueAtTime(f * 1.1, t + 0.35);
+    lfo.frequency.value = 14;
+    depth.gain.setValueAtTime(f * 0.12, t);
+    depth.gain.linearRampToValueAtTime(0, t + 0.35);
+    lfo.connect(depth).connect(osc.frequency);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.2 * v, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+    osc.connect(g).connect(audio.destination);
+    osc.start(t); lfo.start(t); osc.stop(t + 0.42); lfo.stop(t + 0.42);
+  }
+
+  // The sparkly bubble: a twinkly run up the scale
+  function sparkleSound() {
+    if (!audio) return;
+    [2, 3, 5, 7, 8].forEach((n, i) => {
+      tone('sine', NOTES[n], NOTES[n], i * 0.07, 0.35, 0.12);
+      tone('triangle', NOTES[n] * 2, NOTES[n] * 2, i * 0.07, 0.2, 0.03);
+    });
+  }
+
+  // A soft little "blip" when a quick tap makes a small bubble
+  function blipSound() {
+    if (!audio) return;
+    const f = vary(900, 0.25);
+    tone('sine', f, f * 1.4, 0, 0.07, 0.07);
+  }
+
+  // Blowing: a breathy whoosh and a soft hum that both rise as the bubble grows
+  function startBlowSound() {
+    if (!audio || !noiseBuf) return null;
+    const t = audio.currentTime;
+    const src = audio.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+    const filter = audio.createBiquadFilter(); filter.type = 'bandpass'; filter.Q.value = 1.4;
+    filter.frequency.setValueAtTime(400, t);
+    const g = audio.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.05, t + 0.15);
+    src.connect(filter).connect(g).connect(audio.destination);
+    const osc = audio.createOscillator(), og = audio.createGain();
+    osc.type = 'sine'; osc.frequency.setValueAtTime(220, t);
+    og.gain.setValueAtTime(0.0001, t);
+    og.gain.exponentialRampToValueAtTime(0.045, t + 0.2);
+    osc.connect(og).connect(audio.destination);
+    src.start(t); osc.start(t);
+    return { src, filter, g, osc, og };
+  }
+  function blowSoundGrows(s, grown) {
+    const t = audio.currentTime;
+    s.filter.frequency.setTargetAtTime(400 + grown * 1400, t, 0.05);
+    s.osc.frequency.setTargetAtTime(220 + grown * 440, t, 0.05);
+  }
+  function stopBlowSound(s) {
+    if (!s || !audio) return;
+    const t = audio.currentTime;
+    [s.g, s.og].forEach(g => { g.gain.cancelScheduledValues(t); g.gain.setTargetAtTime(0.0001, t, 0.04); });
+    s.src.stop(t + 0.3); s.osc.stop(t + 0.3);
+  }
+  // Let go of a blown bubble: a happy "fwip" as it floats off
+  function letGoSound(grown) {
+    if (!audio) return;
+    const f = 300 - grown * 120;
+    tone('sine', f, f * 2.4, 0, 0.16, 0.12);
+  }
+
+  // ---------- Bubbles ----------
+  const bubbles = [];
+  let time = 0, sinceSparkly = 0;
+
+  function addBubble(x, y, r, more = {}) {
+    const b = {
+      x, y, r, vx: 0, vy: 0, t: 0,
+      wob: Math.random() * 6.3,       // where it is in its wobble and drift
+      hue: Math.random() * 360,       // its soap-film colours
+      grow: 1,                        // 0 to 1 as it pops into being
+      jiggle: 0,                      // a wobble that fades, after being let go
+      held: null,                     // the finger blowing it
+      sparkly: false, party: false,
+      look: makeLook(),
+      ...more,
+    };
+    bubbles.push(b);
+    return b;
+  }
+
+  // No two bubbles look quite the same: each catches the light at its own
+  // angle (still roughly from the top left, so they all look lit by the same
+  // sky), with its own size and shape of shine, and its own swirl of colours.
+  const rand = (a, b) => a + Math.random() * (b - a);
+  function makeLook() {
+    return {
+      light: -2.36 + rand(-0.5, 0.5),            // where the main shine sits round the bubble
+      dist: rand(0.48, 0.64),                    // how far out from the middle it is
+      shineW: rand(0.14, 0.26), shineH: rand(0.07, 0.13),
+      window: Math.random() < 0.3,               // some reflect a little window instead
+      dot: Math.random() < 0.75,                 // a tiny second shine next to it
+      dotAt: rand(0.4, 0.75) * (Math.random() < 0.5 ? -1 : 1),
+      glintAt: rand(-0.45, 0.45),                // the soft glint on the opposite side
+      glintLen: rand(0.45, 1.1),
+      film: rand(0.65, 1.35),                    // how strong the rainbow colours are
+      spin: rand(0.3, 0.9) * (Math.random() < 0.5 ? -1 : 1),   // which way the colours swirl, and how fast
+      wobble: rand(2, 4),                        // how quickly it wobbles
+    };
+  }
+
+  // A bubble drifting up from the bottom, so there's always something to pop.
+  // Every so often it's the sparkly one.
+  function addDrifter(y) {
+    const r = unit * (0.05 + Math.random() * 0.08);
+    const sparkly = ++sinceSparkly >= SPARKLY_AT_LEAST_EVERY || Math.random() < SPARKLY_CHANCE;
+    if (sparkly) sinceSparkly = 0;
+    const b = addBubble(r + Math.random() * (W - r * 2), y === undefined ? H + r : y, sparkly ? Math.max(r, unit * 0.1) : r, { sparkly });
+    b.vy = -riseSpeed(b);
+  }
+
+  function riseSpeed(b) {
+    return unit * (0.04 + 0.1 * (1 - Math.min(1, b.r / big()))) * (b.party ? 2.4 : 1);
+  }
+
+  // The bubble under a finger, if any (not one being blown)
+  function bubbleAt(x, y) {
+    let best = null, bestD = Infinity;
+    for (const b of bubbles) {
+      if (b.held !== null) continue;
+      const d = Math.hypot(b.x - x, b.y - y) / (b.r + TOUCH_SLACK);
+      if (d < 1 && d < bestD) { best = b; bestD = d; }
+    }
+    return best;
+  }
+
+  // ---------- Popping ----------
+  const rings = [], drops = [], stars = [];
+
+  function pop(b, vol = 1) {
+    const i = bubbles.indexOf(b);
+    if (i < 0) return;
+    bubbles.splice(i, 1);
+    rings.push({ x: b.x, y: b.y, r: b.r, life: 1 });
+    // droplets fly off from all round the edge
+    const n = 8 + Math.round(b.r / unit * 50);
+    for (let k = 0; k < n; k++) {
+      const a = Math.random() * Math.PI * 2, s = unit * (0.15 + Math.random() * 0.35);
+      drops.push({ x: b.x + Math.cos(a) * b.r, y: b.y + Math.sin(a) * b.r, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+        r: 1.5 + Math.random() * 2.5, life: 0.5 + Math.random() * 0.3, hue: b.hue + k * 30 });
+    }
+    // big bubbles burst into a handful of little ones, which can be popped too
+    if (b.r > unit * 0.15) {
+      const babies = Math.min(9, Math.round(b.r / (unit * 0.045)));
+      for (let k = 0; k < babies && bubbles.length < maxBubbles(); k++) {
+        const a = Math.random() * Math.PI * 2, d = Math.random() * b.r * 0.6;
+        const baby = addBubble(b.x + Math.cos(a) * d, b.y + Math.sin(a) * d, unit * (0.025 + Math.random() * 0.03), { grow: 0 });
+        baby.vx = Math.cos(a) * unit * 0.25; baby.vy = Math.sin(a) * unit * 0.25 - unit * 0.05;
+      }
+    }
+    if (b.sparkly) { starBurst(b.x, b.y, b.r); sparkleSound(); starFlies(b.x, b.y); }
+    popSound(b.r, vol);
+  }
+
+  function starBurst(x, y, r) {
+    const colours = ['#ffd35a', '#ffffff', '#ff9ad5', '#9be7ff', '#c9a5ff'];
+    for (let k = 0; k < 22; k++) {
+      const a = Math.random() * Math.PI * 2, s = unit * (0.2 + Math.random() * 0.5);
+      stars.push({ x: x + Math.cos(a) * r * 0.3, y: y + Math.sin(a) * r * 0.3, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+        r: 5 + Math.random() * 8, rot: Math.random() * 3, life: 1, col: colours[k % colours.length] });
+    }
+  }
+
+  const maxBubbles = () => (party.active ? PARTY_MAX : MAX);
+
+  // ---------- Blowing ----------
+  // Each finger held down blows its own bubble, which grows from the finger
+  // (like a bubble wand) and follows it around. Let go and it floats off.
+  const blowers = new Map();   // pointerId -> { b, x, y, vx, vy, held, sound }
+
+  function startBlowing(id, x, y) {
+    const b = addBubble(x, y, small(), { held: id, grow: 0 });
+    blowers.set(id, { b, x, y, vx: 0, vy: 0, held: 0, sound: null });
+  }
+
+  function letGo(id) {
+    const w = blowers.get(id);
+    if (!w) return;
+    blowers.delete(id);
+    stopBlowSound(w.sound);
+    const b = w.b;
+    b.held = null;
+    // a flick sends it on its way
+    const fling = unit * 1.5, sp = Math.hypot(w.vx, w.vy) * 0.5;
+    const k = sp > fling ? fling / sp : 1;
+    b.vx = w.vx * 0.5 * k; b.vy = w.vy * 0.5 * k - riseSpeed(b) * 0.5;
+    if (w.held >= BLOWING) { b.jiggle = 1; letGoSound(Math.min(1, w.held / HOLD_TIME)); }
+    else blipSound();
+  }
+
+  function updateBlowers(dt) {
+    for (const [id, w] of blowers) {
+      w.held += dt;
+      w.vx *= 1 - Math.min(1, dt * 8); w.vy *= 1 - Math.min(1, dt * 8);   // a finger held still isn't flicking
+      const b = w.b;
+      const grown = Math.min(1, w.held / HOLD_TIME);
+      const ease = 1 - (1 - grown) * (1 - grown);
+      b.r = small() + (big() - small()) * ease;
+      // it sits on top of the finger, like a bubble on a wand
+      const lift = Math.min(1, w.held / 0.3) * 0.9;
+      b.x += (w.x - b.x) * Math.min(1, dt * 18);
+      b.y += (w.y - b.r * lift - b.y) * Math.min(1, dt * 18);
+      if (w.held >= BLOWING && audio) {
+        if (!w.sound) w.sound = startBlowSound();
+        if (w.sound) blowSoundGrows(w.sound, grown);
+      }
+      // as big as it gets: a little wobble, then off it floats
+      if (w.held >= HOLD_TIME + HOLD_EXTRA) letGo(id);
+    }
+  }
+
+  // ---------- Counter and party (shared parts in engine/party.js) ----------
+  const party = createParty({
+    fanfareVolume: 0.14,
+    onStart() {
+      for (let k = 0; k < 24; k++) partyBubble(H + Math.random() * H * 0.4);
+    },
+    onUpdate(dt, t) {
+      if (t < 2.2 && Math.random() < dt * 16) partyBubble();
+    },
+    text: {
+      y: 0.3, size: 0.16, stroke: '#1d4f7a', flash: '255,255,255',
+      // shimmering soap-bubble colours
+      fill(c, fs, t) {
+        const g = c.createLinearGradient(-fs * 1.5, 0, fs * 1.5, 0);
+        const shift = (t * 120) % 360;
+        g.addColorStop(0, `hsl(${shift + 300}, 95%, 75%)`);
+        g.addColorStop(0.5, `hsl(${shift + 180}, 95%, 75%)`);
+        g.addColorStop(1, `hsl(${shift + 60}, 95%, 75%)`);
+        return g;
+      },
+    },
+  });
+
+  // A fountain of bubbles in every colour, rising quickly from the bottom
+  function partyBubble(y) {
+    if (bubbles.length >= PARTY_MAX) return;
+    const r = unit * (0.04 + Math.random() * 0.09);
+    const b = addBubble(r + Math.random() * (W - r * 2), y === undefined ? H + r : y, r, { party: true });
+    b.vy = -riseSpeed(b) * (0.8 + Math.random() * 0.5);
+  }
+
+  // ---------- Golden stars ----------
+  // Popping the sparkly bubble sends its golden star flying up into the
+  // stars counter. The count is kept on the device, so the collection grows
+  // from one go to the next (grown-ups can start it again in the settings).
+  // Browser storage can be blocked or cleared, so it just starts at 0 then.
+  const STARS_KEY = `${gameName()}:stars`;
+  const starsEl = document.getElementById('stars'), starCountEl = document.getElementById('star-count');
+  let starCount = 0;
+  try { starCount = Math.max(0, parseInt(localStorage.getItem(STARS_KEY), 10) || 0); } catch (_) {}
+  starCountEl.textContent = starCount;
+  function setStars(n) {
+    starCount = n;
+    try { localStorage.setItem(STARS_KEY, String(n)); } catch (_) {}
+    starCountEl.textContent = n;
+    starsEl.classList.remove('bump');
+    void starsEl.offsetWidth;   // restart the bump
+    starsEl.classList.add('bump');
+    setTimeout(() => starsEl.classList.remove('bump'), 150);
+  }
+
+  const flyers = [];   // golden stars on their way to the counter
+  const FLY_TIME = 0.9;
+  function starFlies(x, y) {
+    flyers.push({ x0: x, y0: y, t: 0, spin: Math.random() * 6 });
+  }
+  function drawFlyers(dt) {
+    const box = starsEl.querySelector('svg').getBoundingClientRect();
+    const x1 = box.left + box.width / 2, y1 = box.top + box.height / 2;
+    for (let i = flyers.length - 1; i >= 0; i--) {
+      const f = flyers[i];
+      f.t += dt / FLY_TIME;
+      if (f.t >= 1) {
+        flyers.splice(i, 1);
+        setStars(starCount + 1);
+        dingSound();
+        continue;
+      }
+      // a swoop: a little hop up first, then off to the counter, shrinking as it goes
+      const e = f.t < 0.5 ? 2 * f.t * f.t : 1 - Math.pow(-2 * f.t + 2, 2) / 2;
+      const cx = (f.x0 + x1) / 2, cy = Math.min(f.y0, y1) - unit * 0.15;
+      const x = (1 - e) * (1 - e) * f.x0 + 2 * (1 - e) * e * cx + e * e * x1;
+      const y = (1 - e) * (1 - e) * f.y0 + 2 * (1 - e) * e * cy + e * e * y1;
+      const r = unit * 0.06 * (1 - e) + 15 * e;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(f.spin + f.t * 8);
+      starPath(ctx, r, 5, 0.48);
+      ctx.fillStyle = '#ffd35a'; ctx.fill();
+      ctx.lineWidth = Math.max(2, r * 0.12); ctx.strokeStyle = '#fff'; ctx.stroke();
+      ctx.restore();
+      if (Math.random() < 0.5) {   // a glittery trail
+        stars.push({ x, y, vx: (Math.random() - 0.5) * 40, vy: (Math.random() - 0.5) * 40, r: 3 + Math.random() * 4,
+          rot: Math.random() * 3, life: 0.6, col: Math.random() < 0.5 ? '#ffd35a' : '#ffffff' });
+      }
+    }
+  }
+  // A bright "ting" as the star lands in the counter
+  function dingSound() {
+    if (!audio) return;
+    tone('sine', 2093, 2093, 0, 0.4, 0.1);
+    tone('sine', 3136, 3136, 0.06, 0.35, 0.06);
+  }
+
+  // Grown-ups' settings: how many have been collected, and starting again
+  function starSettings(body) {
+    const section = document.createElement('div');
+    section.className = 'gs-section';
+    section.innerHTML = `
+      <h3 class="gs-heading">Golden stars</h3>
+      <div class="gs-row">
+        <span class="gs-grow"><strong class="gs-star-total"></strong><small>Found in sparkly bubbles. Kept on this device.</small></span>
+        <button type="button" class="gs-button">Start again</button>
+      </div>`;
+    const total = section.querySelector('.gs-star-total'), button = section.querySelector('button');
+    const show = () => {
+      total.textContent = starCount === 1 ? '1 star collected' : `${starCount} stars collected`;
+      button.disabled = starCount === 0;
+    };
+    button.addEventListener('click', () => { setStars(0); show(); });
+    show();
+    body.append(section);
+  }
+
+  // ---------- Scenery ----------
+  // A soft sky with blurry spots of light drifting slowly about
+  const lights = Array.from({ length: 9 }, () => ({
+    x: Math.random(), y: Math.random(), r: 0.08 + Math.random() * 0.16,
+    speed: 0.004 + Math.random() * 0.008, phase: Math.random() * 6.3,
+  }));
+  // The sky slowly drifts through these colours (top, middle, bottom), taking
+  // SKY_TIME seconds to change from one to the next and round again. The
+  // tops are kept deep enough for the white bubbles to show up well.
+  const SKIES = [
+    ['#3d8fc4', '#79c3e3', '#cdbdf2'],   // blue sky
+    ['#7d74d0', '#b3a6ec', '#f6c9e2'],   // lilac
+    ['#d17a9e', '#f1afba', '#fde2b8'],   // strawberry and peach
+    ['#3c9e9a', '#82cfc1', '#dcefb9'],   // mint
+    ['#5f86d6', '#a6bff2', '#f2d3ef'],   // periwinkle
+    ['#b77acb', '#dcaee0', '#c9e8f5'],   // candyfloss
+  ];
+  const SKY_TIME = 20;
+  const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  const SKY_RGB = SKIES.map(sky => sky.map(rgb));
+  function skyColour(k) {
+    const p = time / SKY_TIME, i = Math.floor(p) % SKIES.length, f = p - Math.floor(p);
+    const mix = f * f * (3 - 2 * f);   // eases in and out, so the change is gentle
+    const a = SKY_RGB[i][k], b = SKY_RGB[(i + 1) % SKIES.length][k];
+    return `rgb(${a.map((v, j) => Math.round(v + (b[j] - v) * mix)).join(',')})`;
+  }
+  function drawSky() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, skyColour(0)); g.addColorStop(0.55, skyColour(1)); g.addColorStop(1, skyColour(2));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    for (const l of lights) {
+      const x = (((l.x + time * l.speed) % 1.4) - 0.2) * W;
+      const y = (l.y + Math.sin(time * 0.2 + l.phase) * 0.04) * H, r = l.r * unit;
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, r);
+      glow.addColorStop(0, 'rgba(255,255,255,0.16)'); glow.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = glow; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+  }
+
+  // ---------- Drawing a bubble ----------
+  const conic = typeof ctx.createConicGradient === 'function';
+  function drawBubble(b) {
+    const appear = b.grow < 1 ? 1 - Math.pow(1 - b.grow, 3) : 1;
+    const r = b.r * appear;
+    if (r < 1) return;
+    const jig = Math.sin(b.t * 16) * 0.09 * b.jiggle;
+    const lk = b.look;
+    const wob = Math.sin(time * lk.wobble + b.wob) * 0.03;
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.scale(1 + wob + jig, 1 - wob - jig);
+
+    // the see-through film, a little brighter at the edge
+    const film = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r);
+    film.addColorStop(0, 'rgba(255,255,255,0.03)');
+    film.addColorStop(0.72, `hsla(${b.hue},90%,88%,0.10)`);
+    film.addColorStop(0.92, `hsla(${b.hue + 50},90%,88%,0.28)`);
+    film.addColorStop(1, 'rgba(255,255,255,0.6)');
+    ctx.fillStyle = film;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+
+    // soap-film rainbow swirling slowly round the edge
+    const spin = time * lk.spin + b.wob, hue = b.hue + time * 40;
+    ctx.lineWidth = Math.max(1.5, r * 0.08);
+    if (conic) {
+      const rainbow = ctx.createConicGradient(spin, 0, 0);
+      for (let k = 0; k <= 6; k++) rainbow.addColorStop(k / 6, `hsla(${hue + k * 60},100%,72%,${(k % 2 ? 0.55 : 0.2) * lk.film})`);
+      ctx.strokeStyle = rainbow;
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.93, 0, Math.PI * 2); ctx.stroke();
+    } else {
+      for (let k = 0; k < 6; k++) {
+        ctx.strokeStyle = `hsla(${hue + k * 60},100%,72%,${0.4 * lk.film})`;
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.93, spin + k * Math.PI / 3, spin + (k + 1) * Math.PI / 3); ctx.stroke();
+      }
+    }
+
+    // the sparkly bubble: golden edge, with a star inside
+    if (b.sparkly) {
+      ctx.strokeStyle = `rgba(255,215,110,${0.65 + Math.sin(time * 6) * 0.25})`;
+      ctx.lineWidth = Math.max(2, r * 0.06);
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.99, 0, Math.PI * 2); ctx.stroke();
+      ctx.save();
+      ctx.rotate(Math.sin(time * 1.5 + b.wob) * 0.4);
+      ctx.scale(1 + Math.sin(time * 4) * 0.06, 1 + Math.sin(time * 4) * 0.06);
+      starPath(ctx, r * 0.42, 5, 0.48);
+      ctx.fillStyle = '#ffd35a'; ctx.fill();
+      ctx.lineWidth = r * 0.05; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.stroke();
+      ctx.restore();
+    }
+
+    // shine: the main highlight (top left, give or take), a tiny one beside
+    // it, and a soft glint on the opposite side. Each bubble has its own (see makeLook).
+    const sx = Math.cos(lk.light) * r * lk.dist, sy = Math.sin(lk.light) * r * lk.dist;
+    ctx.save();
+    ctx.translate(sx, sy); ctx.rotate(lk.light + Math.PI / 2);   // lying along the curve of the bubble
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    if (lk.window) {
+      // two tall panes with soft corners, side by side
+      const pw = r * lk.shineW * 0.6, ph = r * lk.shineW * 0.85, gap = Math.max(1.5, r * 0.035);
+      for (const px of [-pw - gap / 2, gap / 2]) {
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(px, -ph / 2, pw, ph, pw * 0.35); else ctx.rect(px, -ph / 2, pw, ph);
+        ctx.fill();
+      }
+    } else {
+      ctx.beginPath(); ctx.ellipse(0, 0, r * lk.shineW, r * lk.shineH, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+    if (lk.dot) {
+      const a = lk.light + lk.dotAt, d = r * Math.min(0.8, lk.dist + 0.06);
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.beginPath(); ctx.arc(Math.cos(a) * d, Math.sin(a) * d, r * 0.045, 0, Math.PI * 2); ctx.fill();
+    }
+    const glint = lk.light + Math.PI + lk.glintAt;
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = Math.max(1, r * 0.05); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.78, glint - lk.glintLen / 2, glint + lk.glintLen / 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // A star with `points` points; `inner` is how deep the dips are (0 to 1)
+  function starPath(c, r, points = 4, inner = 0.3) {
+    c.beginPath();
+    for (let k = 0; k < points * 2; k++) {
+      const rad = k % 2 ? r * inner : r, a = (Math.PI / points) * k - Math.PI / 2;
+      c[k ? 'lineTo' : 'moveTo'](Math.cos(a) * rad, Math.sin(a) * rad);
+    }
+    c.closePath();
+  }
+
+  // The ring of a bubble wand under the finger while blowing (peeking out
+  // round a finger, and plain to see with a mouse)
+  function drawWand(w) {
+    const a = Math.min(1, (w.held - BLOWING) / 0.2);
+    if (a <= 0) return;
+    const rr = unit * 0.045;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(w.x, w.y + rr * 0.6);
+    ctx.strokeStyle = '#ff6fae'; ctx.lineWidth = rr * 0.35;
+    ctx.beginPath(); ctx.ellipse(0, 0, rr, rr * 0.85, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ---------- Main loop ----------
+  let last = performance.now(), nextDrifter = 0.5;
+  for (let k = 0; k < AMBIENT - 1; k++) addDrifter(H * (0.25 + Math.random() * 0.7));   // some already about
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
+
+    // keep a few bubbles drifting about, so there's always one to pop
+    nextDrifter -= dt;
+    if (nextDrifter <= 0) {
+      const free = bubbles.filter(b => b.held === null && !b.party).length;
+      if (free < AMBIENT && bubbles.length < maxBubbles()) addDrifter();
+      nextDrifter = 0.7 + Math.random() * 0.9;
+    }
+
+    party.update(dt);
+    updateBlowers(dt);
+
+    // bubbles float up, sway, bounce off the sides and gently nudge each other
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      const b = bubbles[i];
+      b.t += dt;
+      b.grow = Math.min(1, b.grow + dt * 4);
+      b.jiggle = Math.max(0, b.jiggle - dt * 1.2);
+      if (b.held !== null) continue;
+      const sway = Math.sin(b.t * 0.9 + b.wob) * unit * 0.04;
+      b.vx += (sway - b.vx) * Math.min(1, dt * 1.2);
+      b.vy += (-riseSpeed(b) - b.vy) * Math.min(1, dt * 0.8);
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx); }
+      if (b.x > W - b.r) { b.x = W - b.r; b.vx = -Math.abs(b.vx); }
+      if (b.y + b.r < -20) bubbles.splice(i, 1);
+    }
+    for (let i = 0; i < bubbles.length; i++) {
+      for (let j = i + 1; j < bubbles.length; j++) {
+        const a = bubbles[i], b = bubbles[j];
+        const dx = b.x - a.x, dy = b.y - a.y, gap = a.r + b.r - Math.hypot(dx, dy);
+        if (gap <= 0) continue;
+        const d = Math.hypot(dx, dy) || 1, push = gap * Math.min(1, dt * 6);
+        // a bubble being blown doesn't budge, but shoves the others out of the way
+        const share = a.held !== null ? [0, 1] : b.held !== null ? [1, 0] : [0.5, 0.5];
+        a.x -= dx / d * push * share[0]; a.y -= dy / d * push * share[0];
+        b.x += dx / d * push * share[1]; b.y += dy / d * push * share[1];
+      }
+    }
+
+    drawSky();
+    for (const b of bubbles) if (b.held === null) drawBubble(b);
+    for (const w of blowers.values()) drawBubble(w.b);
+    for (const w of blowers.values()) drawWand(w);
+
+    // pop rings
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const r = rings[i]; r.life -= dt * 4;
+      if (r.life <= 0) { rings.splice(i, 1); continue; }
+      ctx.strokeStyle = `rgba(255,255,255,${r.life * 0.8})`; ctx.lineWidth = 2 + r.life * 3;
+      ctx.beginPath(); ctx.arc(r.x, r.y, r.r * (1.25 - r.life * 0.25), 0, Math.PI * 2); ctx.stroke();
+    }
+    // droplets
+    for (let i = drops.length - 1; i >= 0; i--) {
+      const d = drops[i]; d.vy += unit * 0.9 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.life -= dt;
+      if (d.life <= 0) { drops.splice(i, 1); continue; }
+      ctx.fillStyle = `hsla(${d.hue},100%,92%,${Math.min(1, d.life * 2)})`;
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+    }
+    // stars from the sparkly bubble
+    for (let i = stars.length - 1; i >= 0; i--) {
+      const s = stars[i]; s.vx *= 1 - dt * 2; s.vy = s.vy * (1 - dt * 2) + unit * 0.2 * dt;
+      s.x += s.vx * dt; s.y += s.vy * dt; s.rot += dt * 4; s.life -= dt * 0.8;
+      if (s.life <= 0) { stars.splice(i, 1); continue; }
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot);
+      ctx.globalAlpha = Math.min(1, s.life * 1.5); ctx.fillStyle = s.col;
+      starPath(ctx, s.r); ctx.fill(); ctx.restore();
+    }
+
+    drawFlyers(dt);
+
+    party.draw(ctx, W, H);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(t => { last = t; frame(t); });
+
+  // ---------- Tapping, holding and letting go ----------
+  // a palm or a handful of fingers counts as one tap (see engine/taps.js)
+  const taps = createTapGuard();
+  document.addEventListener('pointerdown', ev => {
+    ev.preventDefault();
+    ensureAudio(); keepAwake();
+    const x = ev.clientX, y = ev.clientY, b = bubbleAt(x, y);
+    if (!taps.accept(ev)) {
+      // part of a palm or a fist: it still pops what it lands on (softly),
+      // but doesn't blow new bubbles or count
+      if (b) pop(b, 0.5);
+      return;
+    }
+    if (b) pop(b);
+    else if (bubbles.length < maxBubbles()) startBlowing(ev.pointerId, x, y);
+    else return;
+    party.add();   // every bubble popped or blown counts; a party starts at 20
+    if (navigator.vibrate) navigator.vibrate(15);
+  });
+  document.addEventListener('pointermove', ev => {
+    const w = blowers.get(ev.pointerId);
+    if (!w) return;
+    const dt = Math.max(0.008, (ev.timeStamp - (w.at || ev.timeStamp - 16)) / 1000);
+    // how fast the finger's moving (smoothed), for flicking bubbles away
+    w.vx += ((ev.clientX - w.x) / dt - w.vx) * 0.5;
+    w.vy += ((ev.clientY - w.y) / dt - w.vy) * 0.5;
+    w.x = ev.clientX; w.y = ev.clientY; w.at = ev.timeStamp;
+  });
+  ['pointerup', 'pointercancel'].forEach(e => document.addEventListener(e, ev => letGo(ev.pointerId)));
+  // a finger lifted while the game was put away never says so
+  document.addEventListener('visibilitychange', () => { for (const id of [...blowers.keys()]) letGo(id); });
+</script>
+<script>
+  // Save the game on the device so it works with no signal (see sw.js and
+  // engine/sw.js). This stays in the page rather than the engine, so it still
+  // runs on a poor signal even if the engine files fail to download.
+  if ('serviceWorker' in navigator) {
+    const save = () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
+    window.addEventListener('load', save);
+    window.addEventListener('online', save);   // signal back? try again
+  }
+  // Ask the device not to clear the saved copy when it's short on space.
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+</script>
+</body>
+</html>
