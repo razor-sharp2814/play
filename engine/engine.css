@@ -24,6 +24,7 @@ html, body {
   transition: transform 0.15s ease-out;
 }
 #counter.bump { transform: scale(1.2); }
+#counter[hidden] { display: none; }   /* party switched off in the settings */
 
 /* ---------- Settings for grown-ups (engine/settings.js) ---------- */
 
@@ -195,3 +196,40 @@ html, body {
 .gs-credit p { margin: 0 0 10px; }
 .gs-credit nav { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .gs-body:empty + .gs-about { border-top: 0; margin-top: 0; }   /* nothing above it to separate from */
+
+/* Labels inside a row: a bold line with a smaller one under it */
+.gs-grow { flex: 1; min-width: 0; }
+.gs-grow strong { display: block; font-weight: 700; }
+.gs-grow small { display: block; color: var(--gs-soft); font-size: 16px; line-height: 1.4; }
+.gs-row.gs-stack { flex-direction: column; align-items: stretch; gap: 12px; }
+label.gs-row { cursor: pointer; }
+
+/* On/off switch: <input type="checkbox" role="switch" class="gs-switch"> */
+.gs-switch {
+  -webkit-appearance: none; appearance: none; flex: none; position: relative; margin: 0;
+  width: 56px; height: 34px; border-radius: 999px;
+  border: 2px solid var(--gs-ink); background: var(--gs-card);
+  cursor: pointer; transition: background-color 0.2s, border-color 0.2s;
+}
+.gs-switch::before {
+  content: ""; position: absolute; top: 4px; left: 4px; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--gs-ink); transition: transform 0.2s, background-color 0.2s;
+}
+.gs-switch:checked { background: var(--gs-button); border-color: var(--gs-button); }
+.gs-switch:checked::before { transform: translateX(22px); background: var(--gs-on-button); }
+
+/* Slider with labelled stops: <input type="range" class="gs-range">, then
+   <div class="gs-ticks"> with a <span> for each stop (.gs-on for the chosen one) */
+.gs-range { -webkit-appearance: none; appearance: none; width: 100%; height: 32px; margin: 0; background: none; cursor: pointer; }
+.gs-range::-webkit-slider-runnable-track { height: 8px; border-radius: 999px; background: var(--gs-line); border: 2px solid var(--gs-ink); }
+.gs-range::-moz-range-track { height: 8px; border-radius: 999px; background: var(--gs-line); border: 2px solid var(--gs-ink); }
+.gs-range::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 30px; height: 30px; margin-top: -13px; border-radius: 50%;
+  background: var(--gs-button); border: 3px solid var(--gs-card); box-shadow: 0 0 0 2px var(--gs-ink);
+}
+.gs-range::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; background: var(--gs-button); border: 3px solid var(--gs-card); box-shadow: 0 0 0 2px var(--gs-ink); }
+.gs-range:disabled { opacity: 0.4; cursor: default; }
+.gs-ticks { display: flex; justify-content: space-between; margin: -4px 4px 0; color: var(--gs-soft); font-size: 16px; }
+.gs-ticks span { width: 30px; text-align: center; }
+.gs-ticks .gs-on { color: var(--gs-text); font-weight: 700; }
+.gs-range:disabled + .gs-ticks { opacity: 0.4; }

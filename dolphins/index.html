@@ -135,7 +135,9 @@
   import { createSettings } from '../engine/settings.js';
 
   startGame();
-  createSettings({ title: 'Dolphins' });   // hold the grey button, top right (engine/settings.js)
+  // Settings for grown-ups: hold the grey button, top right (engine/settings.js).
+  // The party settings come from engine/party.js.
+  createSettings({ title: 'Dolphins', onOpen: body => party.settings(body) });
 
   let W = 0, H = 0, seaY = 0, waterY = 0, size = 0;
   const ctx = fitCanvas(document.getElementById('scene'), (w, h) => {

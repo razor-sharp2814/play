@@ -257,6 +257,45 @@ async function play(page) {
     setSignal('fast');
     await ctx.close();
 
+    // Party settings (games with a counter): on, at 20, to start with. Set to
+    // 10 it parties after 10; switched off, the counter goes and nothing
+    // counts, and that's remembered next time
+    if (fs.readFileSync(path.join(ROOT, game, 'index.html'), 'utf8').includes('id="counter"')) {
+      [ctx, page] = await fresh();
+      setSignal('fast');
+      await open(page, url);
+      await page.waitForTimeout(500);
+      const openSettings = async () => {
+        const b = await page.locator('.gs-hold').boundingBox();
+        await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+        await page.mouse.down(); await page.waitForTimeout(3400); await page.mouse.up();
+      };
+      const { width: pw, height: ph } = page.viewportSize();
+      const tapUntilParty = async n => {
+        for (let i = 0; i < n; i++) {
+          await page.mouse.click(pw / 2, ph / 2); await page.waitForTimeout(250);
+          if (await page.evaluate(() => document.getElementById('counter').classList.contains('party'))) return i + 1;
+        }
+        return 0;
+      };
+      await openSettings();
+      const start = await page.evaluate(() => ({ on: document.querySelector('.gs-switch').checked, goal: document.querySelector('.gs-range').value }));
+      check(start.on && start.goal === '1', 'party settings start on, at 20', JSON.stringify(start));
+      await page.locator('.gs-range').fill('0');
+      await page.getByRole('button', { name: 'Done' }).click();
+      const after10 = await tapUntilParty(40);
+      check(after10 >= 10 && after10 <= 12, 'set to 10, the party comes after 10', `party after ${after10} taps`);
+      await page.waitForTimeout(3500);
+      await openSettings();
+      await page.locator('.gs-switch').click();
+      await page.getByRole('button', { name: 'Done' }).click();
+      await page.reload();
+      await page.waitForTimeout(500);
+      const hidden = await page.evaluate(() => document.getElementById('counter').hidden);
+      check(hidden && !(await tapUntilParty(25)), 'switched off, the counter goes and no party comes (and that\'s remembered)');
+      await ctx.close();
+    }
+
     // First visit on a patchy signal still saves, then works offline
     [ctx, page] = await fresh();
     setSignal('flaky');

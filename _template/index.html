@@ -151,8 +151,9 @@
   startGame();
   // Settings for grown-ups: hold the grey button in the top right. Every game
   // gets the About part (version, Refresh app, help and links). Add
-  // onOpen(body) to put the game's own settings above it.
-  createSettings({ title: 'CHANGE-ME Game Name' });
+  // onOpen(body) to put the game's own settings above it. party.settings adds
+  // the party switch and how many it takes (leave it out with no party).
+  createSettings({ title: 'CHANGE-ME Game Name', onOpen: body => party.settings(body) });
 
   let W = 0, H = 0;
   const ctx = fitCanvas(document.getElementById('scene'), (w, h) => { W = w; H = h; });

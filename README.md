@@ -12,7 +12,7 @@ One big button. Press it to hear a happy sound.
 
 - Swipe up or down to change button. With a mouse or trackpad, scroll up or down instead. There are ten to find, including a chick, a frog, a drum, a pig, a sheep, a train and a poo.
 - Each button has its own colour and sound.
-- Press 20 times for a party!
+- Press 20 times for a party! Grown-ups can switch the party off, or change it to 10, 40 or 80, in the settings.
 
 ### Dolphins
 
@@ -20,7 +20,7 @@ A golden-hour sea where purple dolphins live, and if you're lucky, a rare pink o
 
 - Tap anywhere and a dolphin leaps up to meet your finger.
 - Every few seconds a dolphin pops its head out of the water to say hello.
-- Make the dolphins jump 20 times for a party!
+- Make the dolphins jump 20 times for a party! Grown-ups can switch the party off, or change it to 10, 40 or 80, in the settings.
 
 ### Pictures
 
@@ -59,7 +59,7 @@ Each game has its own folder, with everything that's special to it. The parts ev
 
 - `engine/core.js`: a sharp, full-screen canvas, and locking the screen down so little fingers can't zoom, scroll or select.
 - `engine/audio.js`: sound made from scratch (no sound files), with helpers for notes, noise and the party fanfare.
-- `engine/party.js`: the counter in the top left, and the party when it reaches 20. Each game adds its own fun to the party. It's optional: a game without a counter or party (like Pictures) just doesn't use it.
+- `engine/party.js`: the counter in the top left, and the party when it reaches 20. Each game adds its own fun to the party. Grown-ups can switch it off or change the number (10, 20, 40 or 80) in the settings, saved for each game on that device: a game adds this with `party.settings(body)`. It's optional: a game without a counter or party (like Pictures) just doesn't use it.
 - `engine/taps.js`: turning a palm, a fist or a handful of fingers landing together into one tap, so smashing the screen doesn't count ten times.
 - `engine/settings.js`: settings for grown-ups, behind a grey button in the top right that has to be held for 3 seconds with one finger (or the mouse, or Enter on a keyboard). A tap or a palm does nothing. Every game calls `createSettings()`, and can add its own settings. All of them end with the same About part: the version number, a **Refresh app** button, an email address for help, and links to this site, Razor Sharp and the legal pages.
 - `engine/engine.css`: the shared page and counter styles.

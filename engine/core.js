@@ -88,3 +88,11 @@ export function fitCanvas(canvas, onResize) {
   resize();
   return ctx;
 }
+
+// This game's folder name, e.g. "dolphins" for /dolphins/. Saved copies and
+// saved settings are named after it, so games never mix theirs up.
+export function gameName() {
+  const dirs = location.pathname.split('/').filter(Boolean);
+  if (dirs.length && /\.[a-z0-9]+$/i.test(dirs[dirs.length - 1])) dirs.pop();   // .../index.html
+  return dirs[dirs.length - 1] || 'game';
+}

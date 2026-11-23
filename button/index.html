@@ -198,7 +198,9 @@
   import { createSettings } from '../engine/settings.js';
 
   startGame();
-  createSettings({ title: 'The Button' });   // hold the grey button, top right (engine/settings.js)
+  // Settings for grown-ups: hold the grey button, top right (engine/settings.js).
+  // The party settings come from engine/party.js.
+  createSettings({ title: 'The Button', onOpen: body => party.settings(body) });
 
   // ---------- Settings you might want to tweak ----------
   // Each colour has a "family" so the button never matches the background.

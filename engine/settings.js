@@ -41,6 +41,8 @@ const LINKS = {
   ],
 };
 
+import { gameName } from './core.js';
+
 const RING = 2 * Math.PI * 25;   // length of the ring's circle (r = 25)
 
 export function createSettings(options = {}) {
@@ -221,13 +223,6 @@ export function createSettings(options = {}) {
 
 // ---------- About: version and refreshing ----------
 
-// This game's folder name, e.g. "pictures" for /pictures/. Its saved copies
-// are named after it (see engine/sw.js).
-function gameName() {
-  const dirs = location.pathname.split('/').filter(Boolean);
-  if (dirs.length && /\.[a-z0-9]+$/i.test(dirs[dirs.length - 1])) dirs.pop();   // .../index.html
-  return dirs[dirs.length - 1] || '';
-}
 const isMine = (name, key) => key.startsWith(`${name}-v`) && /^\d+(-engine\d+)?$/.test(key.slice(name.length + 2));
 
 // The game's version and the engine's (the shared engine folder), each on a

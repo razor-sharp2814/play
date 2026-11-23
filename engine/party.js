@@ -14,12 +14,22 @@
 //     onUpdate(dt, t) { ... },    // every frame of the party; t = seconds in
 //     onEnd() { ... },            // the party is over, the counter is back to 0
 //   });
-//   party.add();                  // count one (ignored during a party)
+//   party.add();                  // count one (ignored during a party, or
+//                                 // when the party is switched off)
 //   party.active                  // true while the party is on
 //   party.update(dt);             // call every frame
 //   party.draw(ctx, W, H);        // call every frame, after drawing the game
+//   party.settings(body);         // add the party settings to the grown-ups'
+//                                 // settings (see engine/settings.js)
+//
+// Grown-ups can switch the party off, or change how many it takes (10, 20,
+// 40 or 80). That's saved on the device for each game. While it's off, the
+// counter is hidden and nothing is counted.
 
 import { fanfare } from './audio.js';
+import { gameName } from './core.js';
+
+const GOALS = [10, 20, 40, 80];   // the choices in the settings
 
 export function createParty(options = {}) {
   const o = {
@@ -39,6 +49,21 @@ export function createParty(options = {}) {
   const counterEl = document.getElementById('counter');
   const countEl = document.getElementById('count');
   let count = 0, t = 0, active = false;
+
+  // The grown-ups' choices, saved on the device for this game. Browser
+  // storage can be blocked or cleared, so anything missing falls back to on,
+  // with the game's own goal.
+  const KEY = `${gameName()}:party`;
+  const choice = { on: true, goal: o.goal };
+  try { Object.assign(choice, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (_) {}
+  if (!GOALS.includes(choice.goal)) choice.goal = GOALS.includes(o.goal) ? o.goal : 20;
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(choice)); } catch (_) {} };
+  function apply() {
+    o.goal = choice.goal;
+    if (counterEl) counterEl.hidden = !choice.on;
+    count = 0;
+    showCount();
+  }
 
   function showCount() {
     if (!counterEl || !countEl) return;   // no counter on the page: the party still works
@@ -65,9 +90,10 @@ export function createParty(options = {}) {
     showCount();
   }
 
-  // Count one. Returns false (and counts nothing) during a party.
+  // Count one. Returns false (and counts nothing) during a party, or when the
+  // party is switched off.
   function add() {
-    if (active) return false;
+    if (active || !choice.on) return false;
     count++;
     showCount();
     if (count >= o.goal) start();
@@ -110,8 +136,42 @@ export function createParty(options = {}) {
     }
   }
 
+  // The party settings, for the grown-ups' settings panel: a switch, and a
+  // slider for how many it takes. Changes apply straight away.
+  function settings(body) {
+    const things = ((counterEl && counterEl.getAttribute('aria-label')) || 'Taps').toLowerCase();
+    const section = document.createElement('div');
+    section.className = 'gs-section';
+    section.innerHTML = `
+      <h3 class="gs-heading">Party</h3>
+      <label class="gs-row">
+        <span class="gs-grow"><strong>Party mode</strong><small>Music and fun after a number of ${things}</small></span>
+        <input type="checkbox" role="switch" class="gs-switch">
+      </label>
+      <div class="gs-row gs-stack">
+        <label class="gs-grow" for="gs-party-goal"><strong>${things[0].toUpperCase() + things.slice(1)} for a party</strong></label>
+        <input id="gs-party-goal" type="range" class="gs-range" min="0" max="${GOALS.length - 1}" step="1">
+        <div class="gs-ticks" aria-hidden="true">${GOALS.map(g => `<span>${g}</span>`).join('')}</div>
+      </div>`;
+    const toggle = section.querySelector('.gs-switch'), slider = section.querySelector('.gs-range');
+    const show = () => {
+      toggle.checked = choice.on;
+      slider.value = GOALS.indexOf(choice.goal);
+      slider.disabled = !choice.on;
+      slider.setAttribute('aria-valuetext', `${choice.goal} ${things}`);
+      section.querySelectorAll('.gs-ticks span').forEach((s, i) => s.classList.toggle('gs-on', GOALS[i] === choice.goal));
+    };
+    toggle.addEventListener('change', () => { choice.on = toggle.checked; save(); apply(); show(); });
+    slider.addEventListener('input', () => { choice.goal = GOALS[+slider.value]; save(); apply(); show(); });
+    show();
+    body.append(section);
+  }
+
+  apply();
+
   return {
-    add, update, draw,
+    add, update, draw, settings,
+    get on() { return choice.on; },
     get active() { return active; },
   };
 }
