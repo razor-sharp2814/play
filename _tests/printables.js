@@ -19,7 +19,10 @@ const FONTS = `
 
 (async () => {
   const browser = await chromium.launch({ channel: 'chrome' });
+  // Separate tabs for the PDF and the picture: a tab that has just made a PDF
+  // can still be laid out for paper, which tiled the picture.
   const page = await browser.newPage();
+  const thumbPage = await browser.newPage({ viewport: { width: 192, height: 192 } });
   for (const name of NAMES) {
     const svg = fs.readFileSync(path.join(DIR, `${name}.svg`), 'utf8');
 
@@ -34,13 +37,12 @@ const FONTS = `
 
     // The picture for the listings page: the data-thumb part, on white
     const thumb = (svg.match(/data-thumb="([^"]+)"/) || [])[1] || '0 0 210 297';
-    await page.setViewportSize({ width: 192, height: 192 });
-    await page.setContent(`<!DOCTYPE html><html><head><style>${FONTS}
+    await thumbPage.setContent(`<!DOCTYPE html><html><head><style>${FONTS}
       html, body { margin: 0; background: #fff; }
       svg { display: block; width: 192px; height: 192px; }
     </style></head><body>${svg.replace(/viewBox="[^"]*"/, `viewBox="${thumb}"`).replace(/ width="[^"]*" height="[^"]*"/, '')}</body></html>`);
-    await page.evaluate(() => document.fonts.ready);
-    await page.screenshot({ path: path.join(DIR, `${name}.png`) });
+    await thumbPage.evaluate(() => document.fonts.ready);
+    await thumbPage.screenshot({ path: path.join(DIR, `${name}.png`) });
     console.log(`printables/${name}.pdf, printables/${name}.png`);
   }
   await browser.close();
