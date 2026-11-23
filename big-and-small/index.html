@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#7cc8f5">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Big and Small</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "VideoGame",
+      "@id": "https://play.razorsharp.digital/big-and-small/#game",
+      "name": "Big and Small",
+      "description": "Make the animals big or small, loud or quiet, and hear how their sounds change.",
+      "url": "https://play.razorsharp.digital/big-and-small/",
+      "image": "https://play.razorsharp.digital/big-and-small/icon-512.png",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Any (runs in a web browser)",
+      "gamePlatform": "Web browser",
+      "playMode": "SinglePlayer",
+      "inLanguage": "en-GB",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "GBP"
+      },
+      "author": {
+        "@id": "https://www.razorsharp.digital/#organization"
+      },
+      "publisher": {
+        "@id": "https://www.razorsharp.digital/#organization"
+      },
+      "isPartOf": {
+        "@id": "https://play.razorsharp.digital/#website"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Games by Razor Sharp",
+          "item": "https://play.razorsharp.digital/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Big and Small",
+          "item": "https://play.razorsharp.digital/big-and-small/"
+        }
+      ]
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://www.razorsharp.digital/#organization",
+      "name": "Razor Sharp",
+      "url": "https://www.razorsharp.digital",
+      "logo": "https://www.razorsharp.digital/meta/index.png",
+      "founder": {
+        "@type": "Person",
+        "name": "Kerri Sharp",
+        "url": "https://www.razorsharp.digital/about"
+      },
+      "sameAs": [
+        "https://www.linkedin.com/company/razor-sharp-2814/",
+        "https://www.facebook.com/razorsharp2814/"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://play.razorsharp.digital/#website",
+      "name": "Games made by Razor Sharp",
+      "url": "https://play.razorsharp.digital/",
+      "inLanguage": "en-GB",
+      "publisher": {
+        "@id": "https://www.razorsharp.digital/#organization"
+      }
+    }
+  ]
+}
+</script>
+<link rel="stylesheet" href="../engine/engine.css">
+<style>
+  :root {
+    --edge: 14px;
+    --slider: 76px;     /* how thick each slider is */
+    --size-colour: #ff8c1a;
+    --volume-colour: #8e44ff;
+  }
+  body { background: #7cc8f5; }
+  canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* Counter, top left (the shared parts are in engine.css) */
+  #counter {
+    gap: 8px;
+    padding: 6px 16px 6px 8px;
+    background: rgba(0, 0, 0, 0.22);
+    color: #fff;
+  }
+  #counter .dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 35%, #2f2a2a 0 22%, transparent 23%),
+                radial-gradient(circle at 72% 70%, #2f2a2a 0 18%, transparent 19%), #fffdf7;
+  }
+  #counter.party { background: rgba(255, 255, 255, 0.3); }
+
+  /* ---------- Choosing an animal: a column down the left ---------- */
+  #animals {
+    position: fixed; display: flex; gap: 10px;
+    flex-direction: column;
+    left: calc(env(safe-area-inset-left, 0px) + var(--edge));
+    top: calc(env(safe-area-inset-top, 0px) + 72px);
+  }
+  #animals button {
+    width: 60px; height: 60px; padding: 0; margin: 0;
+    border: 4px solid transparent; border-radius: 20px;
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+    transition: transform 0.15s ease-out, background-color 0.2s, border-color 0.2s;
+    touch-action: none;
+  }
+  #animals button.on { background: #fff; border-color: #ffd166; transform: scale(1.1); }
+  #animals canvas { width: 100%; height: 100%; display: block; pointer-events: none; }
+
+  /* ---------- The two sliders ----------
+     Size along the bottom (small on the left, big on the right).
+     Volume up the right (quiet at the bottom, loud at the top). */
+  .slider {
+    position: fixed; display: flex; align-items: center; gap: 6px;
+    box-sizing: border-box; padding: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12);
+    touch-action: none;
+  }
+  #size {
+    --accent: var(--size-colour);
+    height: var(--slider);
+    left: calc(env(safe-area-inset-left, 0px) + var(--edge));
+    right: calc(env(safe-area-inset-right, 0px) + var(--edge));
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--edge));
+  }
+  #volume {
+    --accent: var(--volume-colour);
+    width: var(--slider);
+    flex-direction: column;
+    right: calc(env(safe-area-inset-right, 0px) + var(--edge));
+    top: calc(env(safe-area-inset-top, 0px) + var(--edge));
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--edge) * 2 + var(--slider));
+  }
+  .slider .end { flex: none; width: 44px; height: 44px; color: var(--accent); pointer-events: none; }
+  .slider .end svg { width: 100%; height: 100%; display: block; }
+  .track { position: relative; flex: 1; align-self: stretch; pointer-events: none; }
+  /* the coloured wedge gets fatter towards big (and towards loud) */
+  .wedge { position: absolute; background: var(--accent); opacity: 0.3; }
+  #size .wedge { inset: 6px 30px; clip-path: polygon(0 40%, 100% 4%, 100% 96%, 0 60%); }
+  #volume .wedge { inset: 30px 6px; clip-path: polygon(40% 100%, 4% 0, 96% 0, 60% 100%); }
+  .travel { position: absolute; }
+  #size .travel { inset: 0 30px; }
+  #volume .travel { inset: 30px 0; }
+  .notch, .thumb { position: absolute; transform: translate(-50%, -50%); border-radius: 50%; }
+  .notch { width: 10px; height: 10px; background: var(--accent); opacity: 0.6; }
+  #size .notch, #size .thumb { top: 50%; }
+  #volume .notch, #volume .thumb { left: 50%; }
+  .thumb {
+    width: 60px; height: 60px; box-sizing: border-box;
+    background: #fff; border: 7px solid var(--accent);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.18);
+    transition: left 0.12s ease-out, top 0.12s ease-out, transform 0.12s ease-out;
+  }
+  .slider.grab .thumb { transform: translate(-50%, -50%) scale(1.15); }
+
+  @media (orientation: landscape) {
+    /* on a wide screen the size slider stops short of the animals and the
+       volume slider, so the volume slider can be full height */
+    #animals { gap: 8px; top: calc(env(safe-area-inset-top, 0px) + 64px); }
+    #animals button { width: 50px; height: 50px; border-radius: 16px; }
+    #volume { bottom: calc(env(safe-area-inset-bottom, 0px) + var(--edge)); }
+    #size {
+      left: calc(env(safe-area-inset-left, 0px) + var(--edge) * 2 + 50px);
+      right: calc(env(safe-area-inset-right, 0px) + var(--edge) * 2 + var(--slider));
+    }
+  }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="counter" role="status" aria-label="Taps"><span class="dot"></span><span id="count">0</span></div>
+<nav id="animals" aria-label="Animals"></nav>
+
+<div id="size" class="slider" role="slider" aria-label="Size" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="4">
+  <span class="end"><svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="7" fill="currentColor"/></svg></span>
+  <div class="track"><div class="wedge"></div><div class="travel"><div class="thumb"></div></div></div>
+  <span class="end"><svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="19" fill="currentColor"/></svg></span>
+</div>
+
+<div id="volume" class="slider" role="slider" aria-label="Volume" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="4">
+  <span class="end"><svg viewBox="0 0 44 44" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 17h7l9-8v26l-9-8H6z" fill="currentColor"/><path d="M28 16a8 8 0 0 1 0 12M32 11a15 15 0 0 1 0 22M36.5 6.5a21 21 0 0 1 0 31"/></svg></span>
+  <div class="track"><div class="wedge"></div><div class="travel"><div class="thumb"></div></div></div>
+  <span class="end"><svg viewBox="0 0 44 44" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 18h5l7-6v20l-7-6h-5z" fill="currentColor"/><path d="M27 19a4 4 0 0 1 0 6"/></svg></span>
+</div>
+
+<script type="module">
+  import { startGame, keepAwake, fitCanvas } from '../engine/core.js';
+  import { audio, ensureAudio, noiseBuf, tone, noise, vary } from '../engine/audio.js';
+  import { createParty } from '../engine/party.js';
+  import { createTapGuard } from '../engine/taps.js';
+  import { ANIMALS, drawAnimal } from './animals.js';
+
+  startGame();
+
+  // ---------- Settings you might want to tweak ----------
+  // Both sliders have 5 steps, 0 to 4, each with a word that pops up.
+  const SIZE_WORDS   = ['tiny', 'small', 'medium', 'big', 'HUGE'];
+  const VOLUME_WORDS = ['whisper', 'quiet', 'medium', 'loud', 'LOUD!'];
+  const START_SIZE = 2, START_VOLUME = 2;
+  const SMALLEST = 0.28;     // a tiny animal is this much of the biggest size
+  const PITCH_RANGE = 2.2;   // octaves from tiny (high and squeaky) to huge (low and rumbly)
+  const SPEED_RANGE = 1.1;   // tiny is quick, huge is slow and stretched (doublings across the range)
+  const QUIETEST_DB = -22;   // whisper this far below loud: still easy to hear
+  // The animals, in the order they appear down the side.
+  // word: the sound written down. The middle part repeats more when the
+  // animal is bigger, so a huge cow goes "moooooo".
+  // calls: when the mouth is open, in seconds, at medium size.
+  const FARM = [
+    { name: 'cow',   word: ['m', 'o', '', 2],    calls: [[0, 1.1]],                                  sound: moo },
+    { name: 'sheep', word: ['b', 'a', '', 2],    calls: [[0, 0.7]],                                  sound: baa },
+    { name: 'pig',   word: ['o', 'i', 'nk', 1],  calls: [[0, 0.16], [0.22, 0.16]],                   sound: oink },
+    { name: 'duck',  word: ['qu', 'a', 'ck', 1], calls: [[0, 0.2], [0.26, 0.2]],                     sound: quack },
+    { name: 'hen',   word: ['cl', 'u', 'ck', 1], calls: [[0, 0.07], [0.14, 0.07], [0.28, 0.07], [0.46, 0.45]], sound: cluck },
+  ];
+  // -------------------------------------------------------
+
+  let size = START_SIZE, volume = START_VOLUME;
+  let current = 0;           // which animal (index into FARM)
+  let W = 0, H = 0;
+  const minSide = () => Math.min(W, H);
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const clamp01 = x => Math.max(0, Math.min(1, x));
+
+  // ---------- Sound ----------
+  // Everything is made from scratch. Each animal's sound is built from
+  // "calls": a buzzing note shaped by filters into a vowel (like a mouth
+  // does), plus a breathy hiss that takes over when it's quiet, so a quiet
+  // moo sounds whispered rather than just turned down.
+
+  // How the sliders change the sound right now
+  function voice(sizeStep = size, volumeStep = volume) {
+    const s = sizeStep / 4, v = volumeStep / 4;
+    return {
+      s, v,
+      pitch: 2 ** ((0.5 - s) * PITCH_RANGE) * vary(1, 0.06),
+      slow: 2 ** ((s - 0.5) * SPEED_RANGE),
+      vowel: 2 ** ((0.5 - s) * PITCH_RANGE * 0.45),   // the mouth shape changes less than the note
+      loud: 10 ** ((1 - v) * QUIETEST_DB / 20),
+      voiced: 0.3 + 0.7 * v,
+      breath: (1 - v) ** 1.5,
+      rumble: Math.max(0, s - 0.5) * 2,               // a deep growl under the big animals
+      bright: 1200 + v * v * 9000,                    // loud is brighter, quiet is softer
+    };
+  }
+
+  // Everything goes through a gentle limiter, so loud is never too loud
+  let master = null;
+  function speaker() {
+    if (master && master.context === audio) return master;
+    const limit = audio.createDynamicsCompressor();
+    limit.threshold.value = -12; limit.knee.value = 6; limit.ratio.value = 8;
+    limit.attack.value = 0.003; limit.release.value = 0.2;
+    const out = audio.createGain(); out.gain.value = 0.9;
+    limit.connect(out).connect(audio.destination);
+    master = limit;
+    return master;
+  }
+  // Where one sound goes: its volume, then its brightness, then the limiter
+  function channel(V) {
+    const g = audio.createGain(); g.gain.value = V.loud;
+    const soft = audio.createBiquadFilter(); soft.type = 'lowpass'; soft.frequency.value = V.bright;
+    g.connect(soft).connect(speaker());
+    return g;
+  }
+
+  // One call. at and len are in seconds at medium size (bigger stretches
+  // them). pitch: [[seconds, Hz], ...]. vowel: [[Hz, sharpness, level], ...].
+  // open: the mouth opening from one brightness to another, e.g. the "m" of
+  // "moo" opening into the "oo".
+  function call(V, out, o) {
+    const t0 = audio.currentTime + 0.02 + (o.at || 0) * V.slow;
+    const len = o.len * V.slow, end = t0 + len;
+    const attack = Math.min(len * 0.4, (o.attack || 0.03) * V.slow), release = Math.min(len * 0.5, (o.release || 0.08) * V.slow);
+    const env = audio.createGain();
+    env.gain.setValueAtTime(0.0001, t0);
+    env.gain.exponentialRampToValueAtTime(o.level || 1, t0 + attack);
+    env.gain.setValueAtTime(o.level || 1, end - release);
+    env.gain.exponentialRampToValueAtTime(0.0001, end);
+    let into = env;
+    if (o.open) {
+      const lp = audio.createBiquadFilter(); lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(o.open[0] * V.vowel, t0);
+      lp.frequency.exponentialRampToValueAtTime(o.open[1] * V.vowel, t0 + o.open[2] * V.slow);
+      lp.connect(env); into = lp;
+    }
+    env.connect(out);
+
+    // the mouth: a few filters that make the vowel
+    const mouthIn = audio.createGain();
+    o.vowel.forEach(([f, q, level]) => {
+      const bp = audio.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * V.vowel; bp.Q.value = q;
+      const g = audio.createGain(); g.gain.value = level;
+      mouthIn.connect(bp).connect(g).connect(into);
+    });
+
+    const stop = end + 0.05, started = [];
+    // the voice
+    const osc = audio.createOscillator(); osc.type = o.wave || 'sawtooth';
+    o.pitch.forEach(([t, f], i) => {
+      const at = t0 + t * V.slow, hz = f * V.pitch;
+      if (i === 0) osc.frequency.setValueAtTime(hz, at); else osc.frequency.linearRampToValueAtTime(hz, at);
+    });
+    const amp = audio.createGain(); amp.gain.value = 1;
+    if (o.wobble) {   // [times a second, how much]: the wobble in a baa
+      const lfo = audio.createOscillator(); lfo.frequency.value = o.wobble[0];
+      const depth = audio.createGain(); depth.gain.value = o.pitch[0][1] * V.pitch * o.wobble[1];
+      lfo.connect(depth).connect(osc.frequency); started.push(lfo);
+    }
+    if (o.rattle) {   // [times a second, how much]: a snort or a rattle
+      amp.gain.value = 1 - o.rattle[1] / 2;
+      const lfo = audio.createOscillator(); lfo.type = 'square'; lfo.frequency.value = o.rattle[0];
+      const depth = audio.createGain(); depth.gain.value = o.rattle[1] / 2;
+      lfo.connect(depth).connect(amp.gain); started.push(lfo);
+    }
+    const voiced = audio.createGain(); voiced.gain.value = V.voiced;
+    osc.connect(amp).connect(voiced).connect(mouthIn); started.push(osc);
+
+    // the breath, for whispering
+    if (V.breath > 0.01 && noiseBuf) {
+      const hiss = audio.createBufferSource(); hiss.buffer = noiseBuf; hiss.loop = true;
+      const g = audio.createGain(); g.gain.value = V.breath * 2.5 * (o.breathy || 1);
+      hiss.connect(g).connect(mouthIn); started.push(hiss);
+    }
+    // the deep growl for big animals
+    if (V.rumble > 0.01 && !o.noRumble) {
+      const sub = audio.createOscillator(); sub.type = 'sine';
+      o.pitch.forEach(([t, f], i) => {
+        const at = t0 + t * V.slow, hz = f * V.pitch * 0.5;
+        if (i === 0) sub.frequency.setValueAtTime(hz, at); else sub.frequency.linearRampToValueAtTime(hz, at);
+      });
+      const g = audio.createGain(); g.gain.value = V.rumble * 0.35 * V.voiced;
+      sub.connect(g).connect(env); started.push(sub);
+    }
+    started.forEach(n => { n.start(t0); n.stop(stop); });
+  }
+
+  // Cow: "mmm-OOO", a low hum that opens up, rises a little and sinks
+  function moo(V, out) {
+    call(V, out, { len: 1.1, pitch: [[0, 105], [0.3, 128], [0.8, 116], [1.1, 90]],
+      vowel: [[320, 4, 1.4], [700, 5, 0.6], [2400, 8, 0.12]], open: [380, 3000, 0.3],
+      attack: 0.12, release: 0.35, wobble: [5, 0.012] });
+  }
+  // Sheep: a wobbly "baa"
+  function baa(V, out) {
+    call(V, out, { len: 0.7, pitch: [[0, 300], [0.7, 270]], wobble: [7, 0.05], rattle: [7, 0.4],
+      vowel: [[800, 5, 1], [1200, 6, 0.6], [2600, 8, 0.15]], open: [600, 5000, 0.06], attack: 0.05, release: 0.2 });
+  }
+  // Pig: a snorty "oink oink"
+  function oink(V, out) {
+    [0, 0.22].forEach((at, i) => {
+      const f = 300 * (i ? 1.12 : 1);
+      call(V, out, { at, len: 0.16, pitch: [[0, f], [0.16, f * 0.7]], rattle: [70, 0.6],
+        vowel: [[1000, 3, 1.2], [2200, 5, 0.3]], attack: 0.02, release: 0.08, breathy: 0.8 });
+      noise(0.02 + at * V.slow, 0.08 * V.slow, 0.05, 'bandpass', 1400 * V.vowel, 800 * V.vowel, 2, out);
+    });
+  }
+  // Duck: two nasal "quack"s
+  function quack(V, out) {
+    [0, 0.26].forEach(at => {
+      call(V, out, { at, len: 0.2, pitch: [[0, 520], [0.05, 560], [0.2, 380]], rattle: [35, 0.3],
+        vowel: [[1100, 6, 1.2], [2300, 7, 0.5]], open: [900, 6000, 0.03], attack: 0.01, release: 0.08 });
+    });
+  }
+  // Hen: "buk buk buk... BAWK"
+  function cluck(V, out) {
+    [0, 0.14, 0.28].forEach(at => {
+      call(V, out, { at, len: 0.07, wave: 'square', pitch: [[0, 620], [0.07, 480]],
+        vowel: [[1400, 4, 1], [2800, 6, 0.3]], attack: 0.005, release: 0.04, noRumble: true });
+    });
+    call(V, out, { at: 0.46, len: 0.45, pitch: [[0, 700], [0.1, 980], [0.45, 760]], wobble: [9, 0.02],
+      vowel: [[1300, 5, 1], [2600, 6, 0.4]], open: [700, 5000, 0.06], attack: 0.02, release: 0.15 });
+  }
+
+  // A little blip as a slider clicks into each step: higher when small,
+  // softer when quiet, so you can hear what's changed
+  function blip() {
+    if (!audio) return;
+    const V = voice();
+    const f = 520 * V.pitch;
+    tone('sine', f, f * 1.25, 0, 0.1, 0.35, channel(V));
+  }
+  // A soft "pop" when a new animal appears
+  function pop() {
+    if (!audio) return;
+    const f = vary(420, 0.2);
+    tone('sine', f, f * 2.4, 0, 0.12, 0.25);
+    noise(0, 0.15, 0.05, 'bandpass', 600, 2400, 1.5);
+  }
+
+  // ---------- The farm ----------
+  const bg = document.createElement('canvas');
+  const bgCtx = bg.getContext('2d');
+  // where the animal can be: kept clear of the sliders and buttons
+  const area = { left: 0, right: 0, top: 0, bottom: 0 };
+  let groundY = 0, biggest = 0;
+  const ctx = fitCanvas(document.getElementById('scene'), resize);
+
+  function resize(w, h) {
+    W = w; H = h;
+    const sizeR = document.getElementById('size').getBoundingClientRect();
+    const volR = document.getElementById('volume').getBoundingClientRect();
+    const pickR = document.getElementById('animals').getBoundingClientRect();
+    const wide = matchMedia('(orientation: landscape)').matches;
+    area.left = pickR.right + 8;
+    area.right = volR.left - 8;
+    area.top = wide ? 14 : 70;
+    area.bottom = sizeR.top - 10;
+    groundY = area.bottom - 4;
+    // a huge animal is allowed to squeeze past the edges a little
+    biggest = Math.max(60, Math.min((groundY - area.top) * 0.95, (area.right - area.left) * 1.35));
+    drawFarm();
+  }
+
+  // A made-up random number that's the same every time, so the flowers stay put
+  function seeded(n) { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
+
+  // The parts of the farm that don't move, drawn once whenever the screen changes
+  function drawFarm() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    bg.width = Math.round(W * dpr); bg.height = Math.round(H * dpr);
+    const c = bgCtx;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const m = minSide();
+    const horizon = groundY - Math.max(m * 0.16, (groundY - area.top) * 0.32);
+
+    const sky = c.createLinearGradient(0, 0, 0, horizon);
+    sky.addColorStop(0, '#6cc0f2'); sky.addColorStop(1, '#d8f2ff');
+    c.fillStyle = sky; c.fillRect(0, 0, W, H);
+
+    // sun
+    const sx = lerp(area.left, area.right, 0.72), sy = Math.max(area.top + m * 0.06, horizon * 0.3), sr = m * 0.07;
+    c.fillStyle = 'rgba(255, 230, 120, 0.35)'; c.beginPath(); c.arc(sx, sy, sr * 1.6, 0, 7); c.fill();
+    c.fillStyle = '#ffd84d'; c.beginPath(); c.arc(sx, sy, sr, 0, 7); c.fill();
+
+    // rolling hills, far then near
+    [['#a8dc84', horizon - m * 0.05, 0.9, 1.3], ['#86cf62', horizon + m * 0.02, 1.4, 4.1]].forEach(([col, y, waves, phase]) => {
+      c.fillStyle = col; c.beginPath(); c.moveTo(0, H);
+      for (let x = 0; x <= W; x += 8) c.lineTo(x, y - Math.sin(x / W * Math.PI * waves + phase) * m * 0.05);
+      c.lineTo(W, H); c.fill();
+    });
+
+    // the barn, off to one side
+    const bw = m * 0.3, bh = bw * 0.7, bx = lerp(area.left, area.right, 0.12) - bw / 2, by = horizon + m * 0.04;
+    c.lineJoin = 'round'; c.lineWidth = Math.max(2, m * 0.006); c.strokeStyle = '#5c2318';
+    c.fillStyle = '#d64933'; c.beginPath(); c.rect(bx, by - bh, bw, bh); c.fill(); c.stroke();
+    c.fillStyle = '#9c2f22'; c.beginPath();
+    c.moveTo(bx - bw * 0.08, by - bh); c.lineTo(bx + bw * 0.2, by - bh * 1.55); c.lineTo(bx + bw * 0.8, by - bh * 1.55); c.lineTo(bx + bw * 1.08, by - bh);
+    c.closePath(); c.fill(); c.stroke();
+    const dw = bw * 0.4, dh = bh * 0.62, dx = bx + bw / 2 - dw / 2;
+    c.fillStyle = '#b53a27'; c.fillRect(dx, by - dh, dw, dh);
+    c.strokeStyle = '#fff'; c.lineWidth = Math.max(2, m * 0.008);
+    c.strokeRect(dx, by - dh, dw, dh);
+    c.beginPath(); c.moveTo(dx, by - dh); c.lineTo(dx + dw, by); c.moveTo(dx + dw, by - dh); c.lineTo(dx, by); c.stroke();
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(bx + bw / 2, by - bh * 1.18, bw * 0.08, 0, 7); c.fill();
+
+    // the field
+    c.fillStyle = '#6cc24a'; c.fillRect(0, horizon + m * 0.08, W, H);
+    c.fillStyle = '#6cc24a'; c.beginPath(); c.moveTo(0, H);
+    for (let x = 0; x <= W; x += 8) c.lineTo(x, horizon + m * 0.08 - Math.sin(x / W * 3 + 0.5) * m * 0.025);
+    c.lineTo(W, H); c.fill();
+
+    // a wooden fence across the field
+    const fy = horizon + m * 0.1, fh = m * 0.09, gap = Math.max(36, m * 0.11);
+    c.fillStyle = '#e8c07d'; c.strokeStyle = '#8a5a2b'; c.lineWidth = Math.max(1.5, m * 0.004);
+    [0.3, 0.7].forEach(k => { c.beginPath(); c.rect(0, fy - fh * k - fh * 0.08, W, fh * 0.16); c.fill(); c.stroke(); });
+    for (let x = gap * 0.3; x < W; x += gap) {
+      c.beginPath(); c.moveTo(x - fh * 0.1, fy); c.lineTo(x - fh * 0.1, fy - fh * 0.92); c.lineTo(x, fy - fh * 1.05);
+      c.lineTo(x + fh * 0.1, fy - fh * 0.92); c.lineTo(x + fh * 0.1, fy); c.closePath(); c.fill(); c.stroke();
+    }
+
+    // grass tufts and flowers
+    for (let i = 0; i < 70; i++) {
+      const x = seeded(i) * W, y = lerp(fy + m * 0.03, H, seeded(i + 99));
+      const k = 0.5 + (y - fy) / (H - fy);
+      if (i % 4 === 0) {
+        const col = ['#fff', '#ffd166', '#ff8fab', '#c39bff'][i % 16 / 4 | 0];
+        c.fillStyle = col;
+        for (let p = 0; p < 5; p++) { const a = p / 5 * 6.283; c.beginPath(); c.arc(x + Math.cos(a) * 4 * k, y + Math.sin(a) * 4 * k, 3 * k, 0, 7); c.fill(); }
+        c.fillStyle = '#ffb703'; c.beginPath(); c.arc(x, y, 2.4 * k, 0, 7); c.fill();
+      } else {
+        c.strokeStyle = '#4fa833'; c.lineWidth = 2 * k; c.lineCap = 'round';
+        c.beginPath();
+        [-1, 0, 1].forEach(d => { c.moveTo(x + d * 3 * k, y); c.lineTo(x + d * 6 * k, y - 9 * k); });
+        c.stroke();
+      }
+    }
+  }
+
+  const clouds = [0, 1, 2].map(i => ({ x: seeded(i + 7), y: 0.05 + seeded(i + 3) * 0.16, s: 0.7 + seeded(i + 5) * 0.6, speed: 0.004 + seeded(i + 11) * 0.006 }));
+  function drawClouds(dt) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    for (const c of clouds) {
+      c.x += c.speed * dt;
+      if (c.x > 1.25) c.x = -0.25;
+      const x = c.x * W, y = area.top + c.y * (groundY - area.top) * 0.5, r = minSide() * 0.05 * c.s;
+      ctx.beginPath();
+      [[-1.3, 0.2, 0.7], [-0.5, -0.2, 1], [0.5, -0.1, 0.9], [1.3, 0.25, 0.65], [0, 0.3, 0.9]].forEach(([dx, dy, k]) => {
+        ctx.moveTo(x + dx * r + k * r, y + dy * r); ctx.arc(x + dx * r, y + dy * r, k * r, 0, 7);
+      });
+      ctx.fill();
+    }
+  }
+
+  // ---------- The animal ----------
+  const pet = {
+    shown: lerp(SMALLEST, 1, START_SIZE / 4), speed: 0,   // its size, springing towards the slider
+    pop: 1, popSpeed: 0,                                 // pops in when it changes
+    calls: [], singStart: -1, hop: 0, hopSpeed: 0,
+    blinkAt: 2, blink: 0,
+  };
+  let time = 0, shake = 0;
+  // little bits that come out with a sound
+  const rings = [], words = [], confetti = [];
+  let label = null;           // the word that pops up when a slider moves
+
+  function animalSize() { return biggest * pet.shown * pet.pop; }
+
+  // How open the mouth is, from the calls being made
+  function mouthAt(calls, start) {
+    let m = 0;
+    const t = time - start;
+    for (const [a, l] of calls) {
+      const x = (t - a) / l;
+      if (x > 0 && x < 1) m = Math.max(m, Math.sin(Math.PI * Math.min(1, x * 1.4 + 0.1)) ** 0.6);
+    }
+    return m;
+  }
+
+  // Make an animal call out, with rings and its word coming from its mouth.
+  // who is the animal's entry in FARM; at is where it's standing.
+  function sing(who, at) {
+    const V = voice();
+    if (audio) who.sound(V, channel(V));
+    const calls = who.calls.map(([a, l]) => [a * V.slow, l * V.slow]);
+    if (at.self) {
+      pet.calls = calls; pet.singStart = time;
+      if (V.v >= 0.75) pet.hopSpeed = -(3 + V.v * 3);     // loud ones jump
+      if (volume === 4) shake = 0.3;
+    } else { at.calls = calls; at.singStart = time; }
+
+    // rings, more and bolder the louder it is
+    const n = 1 + Math.round(V.v * 3);
+    for (let i = 0; i < n; i++) rings.push({ who: at, delay: i * 0.13, age: 0, life: 0.6 + V.v * 0.4, v: V.v });
+
+    // the sound written out: bigger letters when it's louder, more letters
+    // when the animal is bigger (and slower)
+    const [a, mid, b, min] = who.word;
+    let text = a + mid.repeat(min + size) + b;
+    if (V.v >= 0.75) text = text.toUpperCase() + '!';
+    if (words.length >= 3) words.shift();   // don't let them pile up
+    words.push({ who: at, text, v: V.v, age: 0, life: 1.4, side: Math.random() < 0.5 ? -1 : 1 });
+  }
+
+  // Where an animal's mouth is on screen
+  function mouthOf(at) {
+    if (at.self) return { x: (area.left + area.right) / 2, y: groundY - pet.hop + ANIMALS[FARM[current].name].mouthY * animalSize(), size: animalSize() };
+    return { x: at.x, y: groundY + 8 - at.hop + ANIMALS[at.name].mouthY * at.size, size: at.size };
+  }
+
+  function drawPet(dt) {
+    // springs: size follows the slider with a little boing, and pops in
+    const target = lerp(SMALLEST, 1, size / 4);
+    pet.speed += ((target - pet.shown) * 140 - pet.speed * 13) * dt; pet.shown += pet.speed * dt;
+    pet.popSpeed += ((1 - pet.pop) * 220 - pet.popSpeed * 16) * dt; pet.pop += pet.popSpeed * dt;
+    pet.pop = Math.max(0, pet.pop);
+    pet.hopSpeed += 30 * dt; pet.hop -= pet.hopSpeed * dt * 60;
+    if (pet.hop <= 0) { pet.hop = 0; pet.hopSpeed = 0; }
+
+    // blinking
+    if (time > pet.blinkAt) { pet.blink = 1; pet.blinkAt = time + 2.5 + Math.random() * 3; }
+    pet.blink = Math.max(0, pet.blink - dt * 7);
+
+    const sz = animalSize();
+    const x = (area.left + area.right) / 2;
+    const m = mouthAt(pet.calls, pet.singStart);
+    const breathe = Math.sin(time * 2.2) * 0.012;
+    const squash = m * (0.04 + volume * 0.02);
+
+    // shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.14)';
+    const shadowK = 1 / (1 + pet.hop / Math.max(1, sz) * 3);
+    ctx.beginPath(); ctx.ellipse(x, groundY, sz * 0.42 * shadowK, sz * 0.05 * shadowK, 0, 0, 7); ctx.fill();
+
+    ctx.save();
+    ctx.translate(x, groundY - pet.hop);
+    ctx.rotate(m * Math.sin(time * 18) * 0.02 * (volume / 4));
+    ctx.scale(1 - squash * 0.5, 1 + breathe + squash);
+    drawAnimal(ctx, FARM[current].name, { mouth: m, blink: pet.blink > 0.5 ? 1 : 0 }, sz);
+    ctx.restore();
+  }
+
+  function drawRings(dt) {
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const r = rings[i];
+      r.age += dt;
+      const t = (r.age - r.delay) / r.life;
+      if (t > 1) { rings.splice(i, 1); continue; }
+      if (t < 0) continue;
+      const mo = mouthOf(r.who);
+      const rad = mo.size * (0.24 + t * (0.25 + r.v * 0.4));
+      ctx.strokeStyle = `rgba(255, 255, 255, ${(1 - t) * (0.45 + r.v * 0.5)})`;
+      ctx.lineWidth = Math.max(1.5, mo.size * (0.008 + r.v * 0.02)) * (1 - t * 0.5);
+      ctx.lineCap = 'round';
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.arc(mo.x, mo.y, rad, s > 0 ? -0.6 : Math.PI - 0.6, s > 0 ? 0.6 : Math.PI + 0.6);
+        ctx.stroke();
+      }
+    }
+  }
+
+  const FONT = 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  function outlinedText(text, x, y, fs, weight, fill, italic) {
+    ctx.font = `${italic ? 'italic ' : ''}${weight} ${fs}px ${FONT}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(3, fs * 0.16); ctx.strokeStyle = '#fff';
+    ctx.strokeText(text, x, y);
+    ctx.fillStyle = fill; ctx.fillText(text, x, y);
+  }
+
+  function drawWords(dt) {
+    for (let i = words.length - 1; i >= 0; i--) {
+      const w = words[i];
+      w.age += dt;
+      const t = w.age / w.life;
+      if (t > 1) { words.splice(i, 1); continue; }
+      const mo = mouthOf(w.who);
+      // whisper: small, thin and pale. LOUD: big, bold and shaking.
+      const fs = Math.max(14, minSide() * (0.04 + w.v * 0.085)) * (w.who.self ? 1 : 0.7);
+      const weight = [300, 500, 700, 800, 900][Math.round(w.v * 4)];
+      const pop = t < 0.15 ? 0.5 + t / 0.15 * 0.5 : 1;
+      let x = mo.x + w.side * mo.size * 0.25, y = mo.y - mo.size * 0.5 - t * minSide() * 0.12;
+      if (w.v >= 0.75) { x += (Math.random() - 0.5) * fs * 0.08; y += (Math.random() - 0.5) * fs * 0.08; }
+      ctx.font = `${weight} ${fs}px ${FONT}`;
+      const half = ctx.measureText(w.text).width / 2 + 8;
+      x = Math.max(half, Math.min(W - half, x));
+      y = Math.max(fs, y);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (1 - t) * 3) * (0.55 + w.v * 0.45);
+      ctx.translate(x, y); ctx.scale(pop, pop);
+      outlinedText(w.text, 0, 0, fs, weight, '#5b3a8c', w.v < 0.3);
+      ctx.restore();
+    }
+  }
+
+  // The word for the slider that just moved, written the way it means:
+  // "tiny" is tiny, "HUGE" is huge, "whisper" is thin and pale
+  function showLabel(kind) {
+    const step = kind === 'size' ? size : volume;
+    label = { kind, step, text: (kind === 'size' ? SIZE_WORDS : VOLUME_WORDS)[step], age: 0 };
+  }
+  function drawLabel(dt) {
+    if (!label) return;
+    label.age += dt;
+    const t = label.age / 1.3;
+    if (t > 1) { label = null; return; }
+    const m = minSide(), k = label.step / 4;
+    let fs, weight, fill, italic = false;
+    if (label.kind === 'size') { fs = m * lerp(0.045, 0.2, k); weight = 800; fill = '#e86a00'; }
+    else { fs = m * 0.1; weight = [300, 500, 700, 800, 900][label.step]; fill = '#7a2fe0'; italic = label.step === 0; }
+    const pop = t < 0.12 ? 1 - Math.pow(1 - t / 0.12, 3) * Math.cos(t / 0.12 * 4) : 1;
+    let x = (area.left + area.right) / 2, y = area.top + Math.max(fs * 0.6, (groundY - area.top) * 0.12);
+    if (label.kind === 'volume' && label.step === 4) { x += (Math.random() - 0.5) * 6; y += (Math.random() - 0.5) * 6; }
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, (1 - t) * 4) * (label.kind === 'volume' ? lerp(0.55, 1, k) : 1);
+    ctx.translate(x, y); ctx.scale(pop, pop);
+    outlinedText(label.text, 0, 0, Math.max(14, fs), weight, fill, italic);
+    ctx.restore();
+  }
+
+  // ---------- Party: the whole farm comes out to sing ----------
+  let chorus = [];
+  let confettiFade = 0;       // counts down once the party's over
+  const CONFETTI_FADE = 0.5;  // seconds
+  function addConfetti(n) {
+    for (let i = 0; i < n; i++) {
+      confetti.push({ x: Math.random() * W, y: -20 - Math.random() * H * 0.15, vx: (Math.random() - 0.5) * 2, vy: 2.5 + Math.random() * 2.5,
+        r: 4 + Math.random() * 5, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3, sway: Math.random() * 6,
+        col: ['#ff4fa3', '#ffd166', '#2aa8ff', '#19d27a', '#9a5cff', '#ff8c1a'][i % 6] });
+    }
+  }
+  const party = createParty({
+    onStart() {
+      confettiFade = 0;
+      addConfetti(120);
+      const others = FARM.filter((_, i) => i !== current);
+      const sz = Math.min(biggest * 0.32, W * 0.2);
+      chorus = others.map((who, i) => ({
+        who, name: who.name, self: false,
+        // in a line across the front of the field, clear of the volume slider
+        x: lerp(sz * 0.5, area.right - sz * 0.45, i / (others.length - 1)),
+        size: sz, pop: 0, popSpeed: 0, hop: 0, calls: [], singStart: -1,
+        singAt: 0.9 + i * 0.45, sung: false,
+      }));
+    },
+    onUpdate(dt, t) {
+      if (Math.random() < 0.4) addConfetti(3);
+      for (const a of chorus) if (!a.sung && t >= a.singAt) { a.sung = true; sing(a.who, a); }
+    },
+    onEnd() { chorus = []; confettiFade = CONFETTI_FADE; },
+  });
+  function drawChorus(dt) {
+    for (const a of chorus) {
+      a.popSpeed += ((1 - a.pop) * 200 - a.popSpeed * 14) * dt; a.pop += a.popSpeed * dt;
+      a.hop = Math.abs(Math.sin(time * 6 + a.x)) * a.size * 0.25;
+      const sz = a.size * Math.max(0, a.pop);
+      ctx.save();
+      ctx.translate(a.x, groundY + 8 - a.hop);
+      drawAnimal(ctx, a.name, { mouth: mouthAt(a.calls, a.singStart) }, sz);
+      ctx.restore();
+    }
+  }
+  function drawConfetti(dt) {
+    // when the party ends, whatever's still falling fades away
+    let fade = 1;
+    if (confettiFade > 0) {
+      confettiFade -= dt;
+      if (confettiFade <= 0) { confetti.length = 0; return; }
+      fade = confettiFade / CONFETTI_FADE;
+    }
+    ctx.globalAlpha = fade;
+    for (let i = confetti.length - 1; i >= 0; i--) {
+      const c = confetti[i];
+      c.sway += dt * 4; c.x += (c.vx + Math.sin(c.sway)) * dt * 60; c.y += c.vy * dt * 60; c.rot += c.vr;
+      if (c.y > H + 20) { confetti.splice(i, 1); continue; }
+      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); ctx.scale(1, Math.cos(c.sway * 1.5));
+      ctx.fillStyle = c.col; ctx.fillRect(-c.r, -c.r * 0.6, c.r * 2, c.r * 1.2);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ---------- Main loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    time += dt;
+    party.update(dt);
+    ctx.save();
+    if (shake > 0) { shake -= dt; const a = minSide() * 0.012 * (shake / 0.3); ctx.translate((Math.random() - 0.5) * a, (Math.random() - 0.5) * a); }
+    ctx.drawImage(bg, 0, 0, W, H);
+    drawClouds(dt);
+    drawPet(dt);
+    drawChorus(dt);
+    drawRings(dt);
+    drawWords(dt);
+    ctx.restore();
+    drawLabel(dt);
+    drawConfetti(dt);
+    party.draw(ctx, W, H);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(t => { last = t; frame(t); });
+
+  // ---------- Choosing an animal ----------
+  const picker = document.getElementById('animals');
+  const chips = FARM.map((who, i) => {
+    const b = document.createElement('button');
+    b.setAttribute('aria-label', ANIMALS[who.name].label);
+    const c = document.createElement('canvas');
+    b.appendChild(c);
+    picker.appendChild(b);
+    b.addEventListener('pointerdown', ev => {
+      ev.preventDefault();
+      ensureAudio(); keepAwake();
+      if (i === current) { sing(FARM[current], { self: true }); return; }
+      choose(i);
+    });
+    return { b, c, who };
+  });
+  function drawChips() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    for (const { b, c, who } of chips) {
+      const px = b.clientWidth - 8;
+      c.width = c.height = Math.round(px * dpr);
+      const k = c.getContext('2d');
+      k.setTransform(dpr, 0, 0, dpr, 0, 0);
+      k.translate(px / 2, px * 0.92);
+      drawAnimal(k, who.name, {}, px * 0.84);
+    }
+  }
+  function choose(i) {
+    current = i;
+    chips.forEach((c, j) => c.b.classList.toggle('on', j === i));
+    pet.pop = 0; pet.popSpeed = 0; pet.calls = [];
+    for (const list of [rings, words]) for (let j = list.length - 1; j >= 0; j--) if (list[j].who.self) list.splice(j, 1);
+    pop();
+  }
+  chips[current].b.classList.add('on');
+  drawChips();
+  window.addEventListener('resize', drawChips);
+  resize(W, H);   // measure again, now the animal buttons are in place
+
+  // ---------- The sliders ----------
+  // Each snaps to 5 steps. Dragging clicks at each step; letting go makes the
+  // animal call out, so you hear the difference straight away.
+  function makeSlider(el, vertical, get, set, kind) {
+    const travel = el.querySelector('.travel'), thumb = el.querySelector('.thumb');
+    for (let i = 0; i < 5; i++) {
+      const n = document.createElement('div'); n.className = 'notch';
+      n.style[vertical ? 'top' : 'left'] = `${(vertical ? 1 - i / 4 : i / 4) * 100}%`;
+      travel.insertBefore(n, thumb);
+    }
+    function place() {
+      const f = get() / 4;
+      thumb.style[vertical ? 'top' : 'left'] = `${(vertical ? 1 - f : f) * 100}%`;
+      el.setAttribute('aria-valuenow', get());
+      el.setAttribute('aria-valuetext', (kind === 'size' ? SIZE_WORDS : VOLUME_WORDS)[get()]);
+    }
+    const holding = new Set();
+    let changed = false;
+    function follow(ev) {
+      const r = travel.getBoundingClientRect();
+      const f = vertical ? 1 - (ev.clientY - r.top) / r.height : (ev.clientX - r.left) / r.width;
+      const step = Math.round(clamp01(f) * 4);
+      if (step === get()) return;
+      set(step); changed = true;
+      place(); blip(); showLabel(kind);
+      if (navigator.vibrate) navigator.vibrate(8);
+    }
+    el.addEventListener('pointerdown', ev => {
+      ev.preventDefault();
+      ensureAudio(); keepAwake();
+      try { el.setPointerCapture(ev.pointerId); } catch (_) {}
+      if (!holding.size) changed = false;
+      holding.add(ev.pointerId);
+      el.classList.add('grab');
+      follow(ev);
+    });
+    el.addEventListener('pointermove', ev => { if (holding.has(ev.pointerId)) follow(ev); });
+    const letGo = ev => {
+      if (!holding.delete(ev.pointerId) || holding.size) return;
+      el.classList.remove('grab');
+      if (changed) sing(FARM[current], { self: true });
+    };
+    el.addEventListener('pointerup', letGo);
+    el.addEventListener('pointercancel', letGo);
+    place();
+  }
+  makeSlider(document.getElementById('size'), false, () => size, v => { size = v; }, 'size');
+  makeSlider(document.getElementById('volume'), true, () => volume, v => { volume = v; }, 'volume');
+
+  // ---------- Tapping the farm ----------
+  // A tap anywhere on the farm makes the animal call out (even a tiny one is
+  // easy to hit). A palm or a handful of fingers counts as one tap.
+  const taps = createTapGuard();
+  document.addEventListener('pointerdown', ev => {
+    if (ev.target.closest('.slider, #animals')) return;
+    ev.preventDefault();
+    ensureAudio(); keepAwake();
+    if (!taps.accept(ev)) return;
+    sing(FARM[current], { self: true });
+    if (navigator.vibrate) navigator.vibrate(15);
+    party.add();
+  });
+</script>
+<script>
+  // Save the game on the phone so it works with no signal (see sw.js and
+  // engine/sw.js). This stays in the page rather than the engine, so it still
+  // runs on a poor signal even if the engine files fail to download.
+  if ('serviceWorker' in navigator) {
+    const save = () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
+    window.addEventListener('load', save);
+    window.addEventListener('online', save);   // signal back? try again
+  }
+  // Ask the phone not to clear the saved copy when it's short on space.
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+</script>
+</body>
+</html>

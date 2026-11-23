@@ -22,6 +22,15 @@ A golden-hour sea where purple dolphins live, and if you're lucky, a rare pink o
 - Every few seconds a dolphin pops its head out of the water to say hello.
 - Make the dolphins jump 20 times for a party!
 
+### Big and Small
+
+Animals whose sounds change when they do.
+
+- Slide along the bottom to make the animal tiny, small, medium, big or HUGE. Small animals squeak, big ones rumble.
+- Slide up the side to go from a whisper to LOUD!
+- Tap anywhere to hear the animal. Pick a different animal down the left.
+- Tap 20 times for a party, where all the animals come out to sing.
+
 ## Getting a game on your home screen
 
 Once a game is saved, open it from its own icon. It runs full screen, like an app, and works without signal or Wi-Fi. Open it once with signal first so it can save itself.
