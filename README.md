@@ -47,6 +47,7 @@ Each game has its own folder, with everything that's special to it. The parts ev
 - `engine/core.js`: a sharp, full-screen canvas, and locking the screen down so little fingers can't zoom, scroll or select.
 - `engine/audio.js`: sound made from scratch (no sound files), with helpers for notes, noise and the party fanfare.
 - `engine/party.js`: the counter in the top left, and the party when it reaches 20. Each game adds its own fun to the party.
+- `engine/taps.js`: turning a palm, a fist or a handful of fingers landing together into one tap, so smashing the screen doesn't count ten times.
 - `engine/engine.css`: the shared page and counter styles.
 - `engine/sw.js`: saving each game on the phone so it works with no signal.
 

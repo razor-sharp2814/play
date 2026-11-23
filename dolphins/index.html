@@ -110,6 +110,7 @@
   import { startGame, keepAwake, fitCanvas } from '../engine/core.js';
   import { audio, noiseBuf, ensureAudio, tone, vary } from '../engine/audio.js';
   import { createParty } from '../engine/party.js';
+  import { createTapGuard } from '../engine/taps.js';
 
   startGame();
 
@@ -678,9 +679,12 @@
   requestAnimationFrame(t => { last = t; frame(t); });
 
   // ---------- Tapping ----------
+  // a palm or a handful of fingers counts as one tap (see engine/taps.js)
+  const taps = createTapGuard();
   document.addEventListener('pointerdown', ev => {
     ev.preventDefault();
     ensureAudio(); keepAwake();
+    if (!taps.accept(ev)) return;
     const x = ev.clientX, y = ev.clientY;
     if (tapPeek(x, y)) { if (navigator.vibrate) navigator.vibrate(15); return; }
     // the dolphin leaps up to roughly where she tapped

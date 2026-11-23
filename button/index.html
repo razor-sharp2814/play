@@ -173,6 +173,7 @@
   import { startGame, keepAwake, fitCanvas } from '../engine/core.js';
   import { audio, ensureAudio, tone, noise, vary } from '../engine/audio.js';
   import { createParty } from '../engine/party.js';
+  import { createTapGuard } from '../engine/taps.js';
 
   startGame();
 
@@ -722,6 +723,7 @@
   const SWIPE_DISTANCE = 50;   // pixels
   const HOLD_TIME = 150;       // ms before a held finger counts as a press
   const pointers = new Map();
+  const taps = createTapGuard();
 
   function firePress(p) {
     if (p.pressed || p.swiped) return;
@@ -733,7 +735,9 @@
     ev.preventDefault();
     ensureAudio(); keepAwake();
     btn.classList.add('down');
-    const p = { x: ev.clientX, y: ev.clientY, pressed: false, swiped: false };
+    // a palm or a handful of fingers counts as one press (see engine/taps.js);
+    // the extra fingers can still swipe, but don't press again
+    const p = { x: ev.clientX, y: ev.clientY, pressed: !taps.accept(ev), swiped: false };
     p.timer = setTimeout(() => firePress(p), HOLD_TIME);
     pointers.set(ev.pointerId, p);
   });

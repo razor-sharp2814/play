@@ -121,6 +121,27 @@ async function play(page) {
     check(!problems.length, 'plays, counts and parties with no errors', problems.slice(0, 3).join('; '));
     await ctx.close();
 
+    // A palm or a handful of fingers landing together counts as one tap
+    // (engine/taps.js): five touches a few milliseconds apart, then lifted
+    [ctx, page] = await fresh();
+    await open(page, url);
+    await page.waitForTimeout(500);
+    const smashed = await page.evaluate(async () => {
+      const count = () => +document.getElementById('count').textContent;
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const x = innerWidth / 2, y = innerHeight / 2, el = document.elementFromPoint(x, y);
+      const touch = (type, id) => el.dispatchEvent(new PointerEvent(type, { pointerId: 10 + id, pointerType: 'touch',
+        isPrimary: id === 0, clientX: x + id * 14, clientY: y, bubbles: true, cancelable: true }));
+      const before = count();
+      for (let i = 0; i < 5; i++) { touch('pointerdown', i); await wait(15); }
+      await wait(60);
+      for (let i = 0; i < 5; i++) touch('pointerup', i);
+      await wait(500);
+      return count() - before;
+    });
+    check(smashed === 1, 'a handful of fingers at once counts as one tap', `counted ${smashed}`);
+    await ctx.close();
+
     // Sound: plays when an iPhone is on silent, and comes back after a phone
     // call or another app. Chrome doesn't do either of those iPhone things, so
     // they're imitated here: a pretend iPhone sound setting, and sound that
@@ -159,7 +180,7 @@ async function play(page) {
     const saved = Object.entries(await savedFiles(page)).filter(([k]) => k.startsWith(`${game}-`));
     check(saved.length === 1, 'keeps exactly one saved copy', saved.map(([k]) => k).join(', '));
     const files = saved.length ? saved[0][1] : [];
-    const missing = ['/engine/core.js', '/engine/audio.js', '/engine/party.js', '/engine/engine.css', `/${game}/index.html`]
+    const missing = ['/engine/core.js', '/engine/audio.js', '/engine/party.js', '/engine/taps.js', '/engine/engine.css', `/${game}/index.html`]
       .filter(f => !files.includes(f));
     check(!missing.length, 'saved copy includes the engine', missing.join(', '));
     setSignal('offline');

@@ -3,8 +3,8 @@
 //
 // Bump ENGINE_VERSION whenever you change anything in the engine folder.
 // Every game then saves a fresh copy the next time it's opened with signal.
-const ENGINE_VERSION = 1;
-const ENGINE_FILES = ['../engine/engine.css', '../engine/core.js', '../engine/audio.js', '../engine/party.js'];
+const ENGINE_VERSION = 2;
+const ENGINE_FILES = ['../engine/engine.css', '../engine/core.js', '../engine/audio.js', '../engine/party.js', '../engine/taps.js'];
 const GAME_FILES = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 // Download one file, trying again a few times if a poor signal drops it.
