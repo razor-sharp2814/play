@@ -174,8 +174,10 @@
   import { audio, ensureAudio, tone, noise, vary } from '../engine/audio.js';
   import { createParty } from '../engine/party.js';
   import { createTapGuard } from '../engine/taps.js';
+  import { createSettings } from '../engine/settings.js';
 
   startGame();
+  createSettings({ title: 'The Button' });   // hold the grey button, top right (engine/settings.js)
 
   // ---------- Settings you might want to tweak ----------
   // Each colour has a "family" so the button never matches the background.

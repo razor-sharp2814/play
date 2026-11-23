@@ -66,7 +66,6 @@
   --cta-shadow: var(--zinc-900);
   --button: var(--zinc-900);
   --on-button: #ffffff;
-  --button-shadow: var(--emerald-400);
 
   --font: "Raleway", Arial, Helvetica, sans-serif;
   --width: 56rem;
@@ -92,7 +91,8 @@
     --on-accent: var(--zinc-900);
     --selection: var(--purple-400);
     --tag-selection: var(--emerald-900);
-    --cta-shadow: var(--emerald-400);
+    --cta: var(--emerald-300);
+    --cta-shadow: #ffffff;
   }
 }
 
@@ -440,17 +440,14 @@ h3 { font-size: 1.5rem; line-height: 2rem; }
   text-decoration: none;
   border: 3px solid var(--ink);
   border-radius: 999px;
-  box-shadow: 5px 5px 0 var(--button-shadow);
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.15s;
 }
 .button:hover, .button:focus-visible {
   transform: translate(-2px, -2px);
-  box-shadow: 7px 7px 0 var(--button-shadow);
   color: var(--on-button);
 }
 .button:active {
   transform: translate(4px, 4px);
-  box-shadow: 1px 1px 0 var(--button-shadow);
   color: var(--on-button);
 }
 .button::selection { background: var(--purple-700); color: #fff; }
