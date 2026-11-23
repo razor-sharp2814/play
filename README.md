@@ -14,9 +14,9 @@ One big button. Press it to hear a happy sound.
 - Each button has its own colour and sound.
 - Press 20 times for a party!
 
-### Purple Dolphins
+### Dolphins
 
-A golden-hour sea where purple dolphins live.
+A golden-hour sea where purple dolphins live, and if you're lucky, a rare pink one.
 
 - Tap anywhere and a dolphin leaps up to meet your finger.
 - Every few seconds a dolphin pops its head out of the water to say hello.
