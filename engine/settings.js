@@ -3,8 +3,8 @@
 // A small grey button sits in the top right. A tap does nothing (apart from
 // showing a short "hold for 3 seconds" hint): it has to be held for a few
 // seconds, with one finger and without sliding off, while a ring fills up
-// around it. Then the settings open over the game. On a computer it's the
-// same with the mouse, or Tab to the button and hold down Enter or Space.
+// around it. Then the settings open over the game. With a mouse it's the
+// same, or Tab to the button and hold down Enter or Space.
 //
 // A palm, a fist or a second finger landing anywhere on the screen cancels
 // the hold, so smashing the corner of the screen won't get in.
@@ -56,7 +56,7 @@ export function createSettings(options = {}) {
   button.type = 'button';
   button.className = 'gs-hold';
   button.setAttribute('aria-label', `${o.title} (press and hold for ${o.holdFor} seconds)`);
-  button.title = `${o.title}: click and hold for ${o.holdFor} seconds`;   // shown on hover, on a computer
+  button.title = `${o.title}: click and hold for ${o.holdFor} seconds`;   // shown on hover, with a mouse
   button.innerHTML = `
     <svg viewBox="0 0 56 56" aria-hidden="true">
       <circle class="gs-hold-ring" cx="28" cy="28" r="25" stroke-dasharray="${RING}" stroke-dashoffset="${RING}" />
@@ -106,7 +106,7 @@ export function createSettings(options = {}) {
     button.classList.remove('gs-holding');
     ring.style.strokeDashoffset = RING;
   }
-  // Let go too soon (a click, say): show how to open it. On a computer
+  // Let go too soon (a click, say): show how to open it. With a mouse,
   // nothing else asks to be held down, so without this it seems broken.
   let nudgeTimer;
   function nudge(how) {
@@ -232,7 +232,7 @@ const isMine = (name, key) => key.startsWith(`${name}-v`) && /^\d+(-engine\d+)?$
 
 // The game's version and the engine's (the shared engine folder), each on a
 // line of their own. Read from the copy
-// saved on the phone (so it's the version actually running), or from the
+// saved on the device (so it's the version actually running), or from the
 // server if it hasn't been saved yet.
 async function showVersion(el) {
   el.textContent = '';
@@ -255,7 +255,7 @@ async function showVersion(el) {
 
 // Refresh app: download every file of the game again, straight from the
 // server (skipping any copies the browser is holding on to), replace the
-// copy saved on the phone with them, then restart the game.
+// copy saved on the device with them, then restart the game.
 //
 // Nothing is thrown away until everything new has arrived, so on a poor
 // signal or none at all the game keeps working as before. Anything the game

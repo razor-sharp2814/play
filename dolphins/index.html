@@ -531,7 +531,7 @@
   // ---------- Clouds ----------
   // Soft clouds drift slowly across the sky, each made of a few puffs that
   // gently grow, shrink and shift, so the clouds slowly change shape.
-  // Sizes and positions are fractions of the screen, so they fit any phone.
+  // Sizes and positions are fractions of the screen, so they fit any device.
   const CLOUD_SPEED = 0.008;   // screen widths per second (about 2 minutes to cross)
   const CLOUD_MORPH = 1;       // how quickly they change shape (2 = twice as fast)
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -720,7 +720,7 @@
   });
 </script>
 <script>
-  // Save the game on the phone so it works with no signal (see sw.js and
+  // Save the game on the device so it works with no signal (see sw.js and
   // engine/sw.js). This stays in the page rather than the engine, so it still
   // runs on a poor signal even if the engine files fail to download.
   if ('serviceWorker' in navigator) {
@@ -728,7 +728,7 @@
     window.addEventListener('load', save);
     window.addEventListener('online', save);   // signal back? try again
   }
-  // Ask the phone not to clear the saved copy when it's short on space.
+  // Ask the device not to clear the saved copy when it's short on space.
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 </script>
 </body>

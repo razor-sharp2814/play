@@ -1,6 +1,6 @@
 // Checks every game still works, including with a poor signal and offline.
 // Run it from this folder with:  npm install  (once), then  npm test
-// It uses the Google Chrome already installed on this computer.
+// It uses the Google Chrome already installed on this device.
 //
 // Every folder with a sw.js in it (apart from engine and _template) is
 // treated as a game and checked.
@@ -165,7 +165,7 @@ async function play(page) {
     if (smashed !== 'no counter') check(smashed === 1, 'a handful of fingers at once counts as one tap', `counted ${smashed}`);
     await ctx.close();
 
-    // Sound: plays when an iPhone is on silent, and comes back after a phone
+    // Sound: plays when an iPhone is on silent, and comes back after a
     // call or another app. Chrome doesn't do either of those iPhone things, so
     // they're imitated here: a pretend iPhone sound setting, and sound that
     // gets stuck as 'interrupted' until it's woken up.
@@ -401,7 +401,7 @@ async function play(page) {
     check((await onScreen()).id === first.id, 'tapping shows the next picture (and goes round again at the end)');
     await page.locator('#prev').click();
     await page.waitForTimeout(700);
-    check((await onScreen()).id === second.id, 'on a computer, the arrow goes back a picture');
+    check((await onScreen()).id === second.id, 'with a mouse, the arrow goes back a picture');
 
     // Pictures are still there offline, after the game is closed and reopened
     await waitUntilSaved(page, 5000);

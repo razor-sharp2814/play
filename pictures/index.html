@@ -178,8 +178,8 @@
   #home.pressed { transform: scale(0.9); }
   #home svg { display: block; width: 100%; height: 100%; fill: currentColor; }
 
-  /* previous and next arrows, only on a computer with a mouse (on a phone,
-     swiping and tapping do the job) */
+  /* previous and next arrows, only on devices with a mouse (on a touch
+     screen, swiping and tapping do the job) */
   .arrow { display: none; }
   @media (hover: hover) and (pointer: fine) {
     .arrow {
@@ -271,7 +271,7 @@
   const taps = createTapGuard();
 
   // ---------- Where the pictures are kept ----------
-  // In this site's storage on the phone (IndexedDB). Nothing is uploaded.
+  // In this site's storage on the device (IndexedDB). Nothing is uploaded.
   //   albums: { id, name }
   //   photos: { id, album, full, thumb }   (full and thumb are JPEG Blobs)
   // Ids count up, so pictures come out in the order they were added.
@@ -318,7 +318,7 @@
   }
 
   // Picture links for <img>, made from what's stored. Made when needed and
-  // let go of when not, so a big album doesn't fill the phone's memory.
+  // let go of when not, so a big album doesn't fill the device's memory.
   const links = new Map();   // "id/full" -> object URL
   async function link(id, size) {
     const key = `${id}/${size}`;
@@ -354,7 +354,7 @@
     g.drawImage(img, 0, 0, c.width, c.height);
     return new Promise((resolve, reject) => c.toBlob(b => (b ? resolve(b) : reject(new Error('shrink failed'))), 'image/jpeg', quality));
   }
-  // Adds the files one at a time (gentler on the phone's memory). Calls
+  // Adds the files one at a time (gentler on the device's memory). Calls
   // onProgress(doneSoFar, total) as it goes. Returns how many couldn't be read.
   async function addPictures(album, files, onProgress) {
     let failed = 0, n = 0;
@@ -561,7 +561,7 @@
   document.addEventListener('pointerup', ev => letGo(ev, false));
   document.addEventListener('pointercancel', ev => letGo(ev, true));
 
-  // On a computer: the mouse wheel or the arrow keys
+  // With a mouse or keyboard: the mouse wheel or the arrow keys
   let lastWheel = 0;
   document.addEventListener('wheel', ev => {
     if ($('viewer').hidden || performance.now() - lastWheel < 400 || Math.abs(ev.deltaX) + Math.abs(ev.deltaY) < 4) return;
@@ -575,7 +575,7 @@
     else if (ev.key === 'Escape' && albums.length > 1) showAlbums();
   });
 
-  // The arrows, on a computer
+  // The arrows, with a mouse
   for (const [id, dir] of [['prev', -1], ['next', 1]]) {
     $(id).addEventListener('pointerdown', ev => {
       if (!taps.accept(ev)) return;
@@ -650,7 +650,7 @@
     let used = '';
     try {
       const est = await navigator.storage.estimate();
-      if (est.usage) used = `Using ${Math.max(1, Math.round(est.usage / 1e6))} MB on this phone.`;
+      if (est.usage) used = `Using ${Math.max(1, Math.round(est.usage / 1e6))} MB on this device.`;
     } catch (_) {}
     body.replaceChildren(
       el('div', { className: 'gs-section' },
@@ -660,7 +660,7 @@
           el('button', { type: 'button', className: 'gs-button gs-primary', textContent: 'New album', on: { click: newAlbum } }))),
       el('div', { className: 'gs-section' },
         el('h3', { className: 'gs-heading', textContent: 'Your pictures stay here' }),
-        el('p', { className: 'gs-note', textContent: 'Pictures are copied into the game on this phone only. They’re never uploaded anywhere, and the details hidden inside photos, like where they were taken, are left out. Removing a picture here doesn’t touch your own photos.' }),
+        el('p', { className: 'gs-note', textContent: 'Pictures are copied into the game on this device only. They’re never uploaded anywhere, and the details hidden inside photos, like where they were taken, are left out. Removing a picture here doesn’t touch your own photos.' }),
         ...(used ? [el('p', { className: 'gs-note', textContent: used })] : [])),
     );
 
@@ -695,7 +695,7 @@
         const failed = await addPictures(albumId, chosen, (n, total) => { progress.textContent = `Adding ${n} of ${total}…`; });
         if (failed) message = `${plural(failed, 'picture')} couldn’t be read, so ${failed === 1 ? 'it was' : 'they were'} left out.`;
       } catch (_) {
-        message = 'The phone ran out of room for more pictures. Some may not have been added.';
+        message = 'The device ran out of room for more pictures. Some may not have been added.';
       }
       if (!settings.isOpen) return refresh();
       await showAlbum(body, albumId);
@@ -738,7 +738,7 @@
         el('h3', { className: 'gs-heading', textContent: ids.length ? plural(ids.length, 'picture') : 'No pictures yet' }),
         el('div', { className: 'pic-actions' }, add, remove),
         progress,
-        el('p', { className: 'gs-note', textContent: ids.length ? 'Tap pictures to choose which to remove. They play in the order they were added.' : 'Choose pictures from your phone. On Android, the picker usually shows your Google Photos albums too.' }),
+        el('p', { className: 'gs-note', textContent: ids.length ? 'Tap pictures to choose which to remove. They play in the order they were added.' : 'Choose pictures from your device. On Android, the picker usually shows your Google Photos albums too.' }),
         files,
         grid),
       el('div', { className: 'gs-section' },
@@ -760,7 +760,7 @@
   await refresh();
 </script>
 <script>
-  // Save the game on the phone so it works with no signal (see sw.js and
+  // Save the game on the device so it works with no signal (see sw.js and
   // engine/sw.js). This stays in the page rather than the engine, so it still
   // runs on a poor signal even if the engine files fail to download.
   if ('serviceWorker' in navigator) {
@@ -768,7 +768,7 @@
     window.addEventListener('load', save);
     window.addEventListener('online', save);   // signal back? try again
   }
-  // Ask the phone not to clear the saved copy (and the pictures) when it's
+  // Ask the device not to clear the saved copy (and the pictures) when it's
   // short on space.
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 </script>

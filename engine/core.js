@@ -25,7 +25,7 @@ export function lockDown() {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
 }
 
-// Keep the screen awake while playing (if the phone allows it). Call on a tap.
+// Keep the screen awake while playing (if the device allows it). Call on a tap.
 let wakeLock = null;
 export async function keepAwake() {
   try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
@@ -34,8 +34,8 @@ export async function keepAwake() {
 // Look for a new version of the game whenever there's a chance of signal, and
 // swap to it at a moment that won't interrupt play.
 //
-// Phones only check for a new version when a game is opened from scratch. But
-// a phone often just wakes a game back up from the background, or the game is
+// Devices only check for a new version when a game is opened from scratch. But
+// a device often just wakes a game back up from the background, or the game is
 // left open for ages, so this also checks:
 //   - whenever the game comes back on screen
 //   - when the signal comes back

@@ -1,5 +1,5 @@
 # Runs the game checks in _tests (play, sound, offline and updates) on every
-# push, so anything broken shows up on GitHub before phones pick it up.
+# push, so anything broken shows up on GitHub before devices pick it up.
 # Results are under the Actions tab on GitHub, and GitHub emails you if a
 # run fails.
 name: Check the games

@@ -788,7 +788,7 @@
   document.addEventListener('pointerup', release);
   document.addEventListener('pointercancel', release);
 
-  // On a computer, the mouse wheel or a trackpad scroll changes button too.
+  // With a mouse or trackpad, scrolling changes button too.
   // Scrolling down (like swiping up) goes to the next button. One scroll
   // gesture moves one button, however long the trackpad keeps gliding.
   const WHEEL_DISTANCE = 60;   // how far to scroll before changing
@@ -810,7 +810,7 @@
   }, { passive: false });
 </script>
 <script>
-  // Save the game on the phone so it works with no signal (see sw.js and
+  // Save the game on the device so it works with no signal (see sw.js and
   // engine/sw.js). This stays in the page rather than the engine, so it still
   // runs on a poor signal even if the engine files fail to download.
   if ('serviceWorker' in navigator) {
@@ -818,7 +818,7 @@
     window.addEventListener('load', save);
     window.addEventListener('online', save);   // signal back? try again
   }
-  // Ask the phone not to clear the saved copy when it's short on space.
+  // Ask the device not to clear the saved copy when it's short on space.
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 </script>
 </body>

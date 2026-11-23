@@ -8,7 +8,7 @@
   2. Search this folder for CHANGE-ME and fill each one in (this file,
      manifest.json and sw.js).
   3. Add icon-192.png and icon-512.png (square, with the picture kept well
-     inside the edges, as phones may crop it to a circle). Then make the
+     inside the edges, as devices may crop it to a circle). Then make the
      link preview picture: cd _tests && npm run previews
   4. Write the game in the <script type="module"> below.
   5. Add the game to the README and the listings page (index.html at the top
@@ -202,7 +202,7 @@
   // ---------- Tapping ----------
   document.addEventListener('pointerdown', ev => {
     ev.preventDefault();
-    ensureAudio(); keepAwake();     // phones only allow sound after a tap
+    ensureAudio(); keepAwake();     // devices only allow sound after a tap
     addBubbles(ev.clientX, ev.clientY, 14);
     pop();
     if (navigator.vibrate) navigator.vibrate(15);
@@ -210,7 +210,7 @@
   });
 </script>
 <script>
-  // Save the game on the phone so it works with no signal (see sw.js and
+  // Save the game on the device so it works with no signal (see sw.js and
   // engine/sw.js). This stays in the page rather than the engine, so it still
   // runs on a poor signal even if the engine files fail to download.
   if ('serviceWorker' in navigator) {
@@ -218,7 +218,7 @@
     window.addEventListener('load', save);
     window.addEventListener('online', save);   // signal back? try again
   }
-  // Ask the phone not to clear the saved copy when it's short on space.
+  // Ask the device not to clear the saved copy when it's short on space.
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 </script>
 </body>

@@ -1,7 +1,7 @@
 // Sound, made from scratch, so no files and no internet are needed.
 //
-// Phones only allow sound after a tap, so call ensureAudio() at the start of
-// every tap (it also brings the sound back after a phone call or another app,
+// Devices only allow sound after a tap, so call ensureAudio() at the start of
+// every tap (it also brings the sound back after a call or another app,
 // and plays even when an iPhone is on silent). Until the first tap `audio` is
 // null, and every sound should start with `if (!audio) return;`.
 
@@ -11,10 +11,10 @@ export let noiseBuf = null;   // 0.6s of white noise, for splashes, puffs and dr
 export function ensureAudio() {
   // On iPhones, sound made this way is muted by the silent switch unless the
   // page says it's playing sound on purpose, like a music or video app would.
-  // (Safari 16.4 and later. Other phones ignore this.)
+  // (Safari 16.4 and later. Other devices ignore this.)
   try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (_) {}
 
-  // A phone can close the sound completely (e.g. when it's low on memory),
+  // A device can close the sound completely (e.g. when it's low on memory),
   // so start again from scratch if that's happened.
   if (audio && audio.state === 'closed') audio = null;
   if (!audio) {
@@ -26,7 +26,7 @@ export function ensureAudio() {
     } catch (_) {}
   }
   // Wake the sound up if it isn't playing. As well as 'suspended', iPhones
-  // use 'interrupted' after a phone call, an alarm or another app playing
+  // use 'interrupted' after a call, an alarm or another app playing
   // sound, and the sound stays off until it's woken up from a tap like this.
   if (audio && audio.state !== 'running') {
     try { const woken = audio.resume(); if (woken && woken.catch) woken.catch(() => {}); } catch (_) {}

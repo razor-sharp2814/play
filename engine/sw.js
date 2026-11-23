@@ -3,7 +3,7 @@
 //
 // Bump ENGINE_VERSION whenever you change anything in the engine folder.
 // Every game then saves a fresh copy the next time it's opened with signal.
-const ENGINE_VERSION = 5;
+const ENGINE_VERSION = 6;
 // (The fonts are for the settings panel, which matches the listings page.)
 const ENGINE_FILES = ['../engine/engine.css', '../engine/core.js', '../engine/audio.js', '../engine/party.js', '../engine/taps.js', '../engine/settings.js',
   '../fonts/Raleway-SemiBold.woff2', '../fonts/Raleway-Bold.woff2'];
@@ -26,7 +26,7 @@ async function fetchWithRetry(url, tries = 4) {
 }
 
 function saveForOffline({ name, version, files = [] }) {
-  // All the games share one storage area on the phone, so every saved copy is
+  // All the games share one storage area on the device, so every saved copy is
   // named after its game, and a game only ever tidies away its own old copies.
   // Matched exactly, so a game called "button" never touches "button-big".
   // (It also covers copies saved before the engine existed, like "button-v10".)
@@ -36,7 +36,7 @@ function saveForOffline({ name, version, files = [] }) {
 
   // Only finish installing once every file is saved, so the game never goes
   // offline half-saved. If it still fails, the old version keeps working and
-  // the phone tries again next time the game is opened.
+  // the device tries again next time the game is opened.
   self.addEventListener('install', e => {
     e.waitUntil((async () => {
       const cache = await caches.open(CACHE);

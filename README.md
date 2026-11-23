@@ -10,7 +10,7 @@ Play them at [play.razorsharp.digital](https://play.razorsharp.digital).
 
 One big button. Press it to hear a happy sound.
 
-- Swipe up or down to change button. On a computer, scroll with the mouse wheel or trackpad. There are ten to find, including a chick, a frog, a drum, a pig, a sheep, a train and a poo.
+- Swipe up or down to change button. With a mouse or trackpad, scroll up or down instead. There are ten to find, including a chick, a frog, a drum, a pig, a sheep, a train and a poo.
 - Each button has its own colour and sound.
 - Press 20 times for a party!
 
@@ -26,10 +26,10 @@ A golden-hour sea where purple dolphins live, and if you're lucky, a rare pink o
 
 Your own photos, one at a time, with nothing to press by mistake.
 
-- Swipe or tap for the next picture. On a computer, scroll or use the arrow keys.
+- Swipe or tap for the next picture. With a mouse or keyboard, scroll or use the arrow keys.
 - With more than one album, little ones choose which to look at, and a button in the top left goes back to the albums.
-- Grown-ups press and hold the grey button in the top right for 3 seconds to make albums and choose pictures. On Android, the phone's picker usually shows your Google Photos albums too.
-- Pictures are copied into the game on that phone only, shrunk to screen size and with their hidden details (like where they were taken) left out. Nothing is uploaded.
+- Grown-ups press and hold the grey button in the top right for 3 seconds to make albums and choose pictures. On Android, the device's picker usually shows your Google Photos albums too.
+- Pictures are copied into the game on that device only, shrunk to screen size and with their hidden details (like where they were taken) left out. Nothing is uploaded.
 
 ## Getting a game on your home screen
 
@@ -39,15 +39,15 @@ Once a game is saved, open it from its own icon. It runs full screen, like an ap
 
 **iPhone and iPad:** open the game in Safari, tap the **Share** button (on newer versions, tap the three dots first), then **Add to Home Screen**, then **Add**.
 
-**Laptop or computer:** open the game in Chrome or Edge and click the install icon at the right of the address bar, then **Install**. On a Mac using Safari, choose File, then **Add to Dock**.
+**Windows, macOS and Linux:** open the game in Chrome or Edge and click the install icon at the right of the address bar, then **Install**. On a Mac using Safari, choose File, then **Add to Dock**.
 
 ## Settings, and getting the latest version
 
-Every game has a grey button in the top right. Press and hold it for 3 seconds (on a computer, click and hold) to open the settings for grown-ups. They show the app version (the game's own, from its `sw.js`) and the engine version (`ENGINE_VERSION` in `engine/sw.js`), and have a **Refresh app** button. That downloads the latest version of the game straight away, without waiting for the phone to update it. With no signal, it says so and leaves the game as it was. Anything saved in a game, like the pictures in Pictures, isn't affected.
+Every game has a grey button in the top right. Press and hold it for 3 seconds (with a mouse, click and hold) to open the settings for grown-ups. They show the app version (the game's own, from its `sw.js`) and the engine version (`ENGINE_VERSION` in `engine/sw.js`), and have a **Refresh app** button. That downloads the latest version of the game straight away, without waiting for the device to update it. With no signal, it says so and leaves the game as it was. Anything saved in a game, like the pictures in Pictures, isn't affected.
 
 ## Keeping little hands inside the game
 
-Phones can lock themselves to one app, so little fingers can't swipe out of the game.
+Most devices can lock themselves to one app, so little fingers can't swipe out of the game.
 
 **Android:** switch on **App pinning** in Settings (Security & privacy, then More security & privacy), open the game, then pin it from the recent apps screen. To leave, swipe up and hold, then enter your PIN or fingerprint.
 
@@ -63,9 +63,9 @@ Each game has its own folder, with everything that's special to it. The parts ev
 - `engine/taps.js`: turning a palm, a fist or a handful of fingers landing together into one tap, so smashing the screen doesn't count ten times.
 - `engine/settings.js`: settings for grown-ups, behind a grey button in the top right that has to be held for 3 seconds with one finger (or the mouse, or Enter on a keyboard). A tap or a palm does nothing. Every game calls `createSettings()`, and can add its own settings. All of them end with the same About part: the version number, a **Refresh app** button, an email address for help, and links to this site, Razor Sharp and the legal pages.
 - `engine/engine.css`: the shared page and counter styles.
-- `engine/sw.js`: saving each game on the phone so it works with no signal.
+- `engine/sw.js`: saving each game on the device so it works with no signal.
 
-There's no build step. The games load the engine straight from the folder, so what's in the repo is what goes live. To try a game on your computer, run `python3 -m http.server` at the top of the repo and open [localhost:8000](http://localhost:8000). Opening `index.html` straight from Finder won't work.
+There's no build step. The games load the engine straight from the folder, so what's in the repo is what goes live. To try a game locally, run `python3 -m http.server` at the top of the repo and open [localhost:8000](http://localhost:8000). Opening `index.html` straight from Finder won't work.
 
 ### Making a new game
 
@@ -89,16 +89,16 @@ The checks fail if a game is missing its preview tags or picture.
 
 ### Sending out an update
 
-Phones keep a saved copy of each game, so they need telling when something changes:
+Devices keep a saved copy of each game, so they need telling when something changes:
 
 - **Changed a game?** Bump `version` in that game's `sw.js`.
 - **Changed anything in `engine/`?** Bump `ENGINE_VERSION` in `engine/sw.js`. Every game then updates, with no need to bump each one.
 
-After that, phones update themselves the next time a game is used with signal: when it's opened, brought back on screen, or left open as the signal comes back. The new version downloads in the background, then the game swaps over straight away if no one has played yet, otherwise when it's put away or after 30 seconds with no taps, so no one is cut off mid-game.
+After that, devices update themselves the next time a game is used with signal: when it's opened, brought back on screen, or left open as the signal comes back. The new version downloads in the background, then the game swaps over straight away if no one has played yet, otherwise when it's put away or after 30 seconds with no taps, so no one is cut off mid-game.
 
 ### Checking the games
 
-`_tests/` has checks that play every game, check the sound, and test it with a slow, patchy and switched-off signal and with updates. They use the Google Chrome already on your computer. To run them yourself:
+`_tests/` has checks that play every game, check the sound, and test it with a slow, patchy and switched-off signal and with updates. They use the Google Chrome already installed on your device. To run them yourself:
 
 ```
 cd _tests
