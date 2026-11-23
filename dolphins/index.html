@@ -121,14 +121,35 @@
   }
   #counter canvas { position: static; width: 48px; height: 36px; }
   #counter.party { color: #fff; background: rgba(224, 80, 143, 0.7); }
+
+  /* Pink dolphins counter, under the jump counter (moving up into its place
+     when the party is switched off). It doesn't count towards the party. */
+  #pinks {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 68px);
+    left: calc(env(safe-area-inset-left, 0px) + 14px);
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 16px 4px 6px;
+    border-radius: 999px;
+    background: rgba(37, 16, 79, 0.45);
+    color: #ffc2e6;
+    font: 700 28px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    transition: transform 0.15s ease-out;
+  }
+  #counter[hidden] + #pinks { top: calc(env(safe-area-inset-top, 0px) + 14px); }
+  #pinks canvas { position: static; width: 48px; height: 36px; }
+  #pinks.bump { transform: scale(1.25); }
 </style>
 </head>
 <body>
 <canvas id="scene"></canvas>
 <div id="counter" role="status" aria-label="Jumps"><canvas id="counter-icon" width="96" height="72"></canvas><span id="count">0</span></div>
+<div id="pinks" role="status" aria-label="Pink dolphins"><canvas id="pinks-icon" width="96" height="72"></canvas><span id="pink-count">0</span></div>
 
 <script type="module">
-  import { startGame, keepAwake, fitCanvas } from '../engine/core.js';
+  import { startGame, keepAwake, fitCanvas, gameName } from '../engine/core.js';
   import { audio, noiseBuf, ensureAudio, tone, vary } from '../engine/audio.js';
   import { createParty } from '../engine/party.js';
   import { createTapGuard } from '../engine/taps.js';
@@ -137,7 +158,8 @@
   startGame();
   // Settings for grown-ups: hold the grey button, top right (engine/settings.js).
   // The party settings come from engine/party.js.
-  createSettings({ title: 'Dolphins', onOpen: body => party.settings(body) });
+  // The pink dolphins counter's settings are below.
+  createSettings({ title: 'Dolphins', onOpen: body => { party.settings(body); pinkSettings(body); } });
 
   let W = 0, H = 0, seaY = 0, waterY = 0, size = 0;
   const ctx = fitCanvas(document.getElementById('scene'), (w, h) => {
@@ -289,23 +311,57 @@
     c.restore();
   }
 
-  // small dolphin next to the jump counter. It turns pink for a moment
-  // whenever the pink dolphin appears.
+  // small dolphin next to the jump counter (and a pink one next to the pink
+  // dolphins counter)
   const counterIcon = document.getElementById('counter-icon').getContext('2d');
-  let counterPinkTimer = null;
-  function drawCounterDolphin(skin) {
-    const ic = counterIcon;
+  function drawCounterDolphin(skin, ic = counterIcon) {
     ic.setTransform(1, 0, 0, 1, 0, 0);
     ic.clearRect(0, 0, ic.canvas.width, ic.canvas.height);
     ic.translate(48, 40); ic.rotate(-0.25); ic.scale(0.34, 0.34);
     drawDolphin(ic, skin, 0);
   }
-  function counterGoesPink() {
-    drawCounterDolphin(PINK);
-    clearTimeout(counterPinkTimer);
-    counterPinkTimer = setTimeout(() => drawCounterDolphin(SKINS[1]), 2500);
-  }
   drawCounterDolphin(SKINS[1]);
+
+  // ---------- Pink dolphins counter ----------
+  // Counts every pink dolphin that leaps out of the water (the party's own
+  // pink ones too). The count is kept on the device, so it grows from one go
+  // to the next (grown-ups can start it again in the settings). Browser
+  // storage can be blocked or cleared, so it just starts at 0 then.
+  const PINKS_KEY = `${gameName()}:pinks`;
+  const pinksEl = document.getElementById('pinks'), pinkCountEl = document.getElementById('pink-count');
+  drawCounterDolphin(PINK, document.getElementById('pinks-icon').getContext('2d'));
+  let pinkCount = 0;
+  try { pinkCount = Math.max(0, parseInt(localStorage.getItem(PINKS_KEY), 10) || 0); } catch (_) {}
+  pinkCountEl.textContent = pinkCount;
+  function setPinks(n) {
+    pinkCount = n;
+    try { localStorage.setItem(PINKS_KEY, String(n)); } catch (_) {}
+    pinkCountEl.textContent = n;
+    pinksEl.classList.remove('bump');
+    void pinksEl.offsetWidth;   // restart the bump
+    pinksEl.classList.add('bump');
+    setTimeout(() => pinksEl.classList.remove('bump'), 150);
+  }
+
+  // Grown-ups' settings: how many have been seen, and starting again
+  function pinkSettings(body) {
+    const section = document.createElement('div');
+    section.className = 'gs-section';
+    section.innerHTML = `
+      <h3 class="gs-heading">Pink dolphins</h3>
+      <div class="gs-row">
+        <span class="gs-grow"><strong class="gs-pink-total"></strong><small>Every pink dolphin that leaps. Kept on this device.</small></span>
+        <button type="button" class="gs-button">Start again</button>
+      </div>`;
+    const total = section.querySelector('.gs-pink-total'), button = section.querySelector('button');
+    const show = () => {
+      total.textContent = pinkCount === 1 ? '1 pink dolphin seen' : `${pinkCount} pink dolphins seen`;
+      button.disabled = pinkCount === 0;
+    };
+    button.addEventListener('click', () => { setPinks(0); show(); });
+    show();
+    body.append(section);
+  }
 
   const dolphins = [];
   const peeks = [];     // dolphins popping their heads out of the water
@@ -650,7 +706,7 @@
       d.p += dt / d.dur;
       if (!d.inDone && d.p >= d.pIn) {
         d.inDone = true; const q = dolphinPos(d, d.pIn); splash(q.x, waterY, true, d.quiet);
-        if (d.pink) { happyTrill(); counterGoesPink(); }
+        if (d.pink) { happyTrill(); setPinks(pinkCount + 1); }
       }
       if (!d.outDone && d.p >= d.pOut) { d.outDone = true; const q = dolphinPos(d, d.pOut); splash(q.x, waterY, false, d.quiet); }
       if (d.p >= 1) { dolphins.splice(i, 1); continue; }

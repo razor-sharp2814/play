@@ -112,7 +112,7 @@
   html, body { background: #3d8fc4; }
   canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 
-  /* Bubble counter, top left (the shared parts are in engine.css) */
+  /* Pops counter, top left (the shared parts are in engine.css) */
   #counter {
     gap: 8px;
     padding: 5px 16px 5px 6px;
@@ -128,7 +128,7 @@
   }
   #counter.party { background: rgba(255, 255, 255, 0.3); }
 
-  /* Golden stars counter, under the bubble counter (moving up into its place
+  /* Golden stars counter, under the pops counter (moving up into its place
      when the party is switched off). It doesn't count towards the party. */
   #stars {
     position: fixed;
@@ -151,7 +151,7 @@
 </head>
 <body>
 <canvas id="scene"></canvas>
-<div id="counter" role="status" aria-label="Bubbles"><span class="bubble"></span><span id="count">0</span></div>
+<div id="counter" role="status" aria-label="Pops"><span class="bubble"></span><span id="count">0</span></div>
 <div id="stars" role="status" aria-label="Golden stars"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z"/></svg><span id="star-count">0</span></div>
 
 <script type="module">
@@ -385,7 +385,7 @@
 
   // ---------- Blowing ----------
   // Each finger held down blows its own bubble, which grows from the finger
-  // (like a bubble wand) and follows it around. Let go and it floats off.
+  // and follows it around. Let go and it floats off.
   const blowers = new Map();   // pointerId -> { b, x, y, vx, vy, held, sound }
 
   function startBlowing(id, x, y) {
@@ -416,7 +416,7 @@
       const grown = Math.min(1, w.held / HOLD_TIME);
       const ease = 1 - (1 - grown) * (1 - grown);
       b.r = small() + (big() - small()) * ease;
-      // it sits on top of the finger, like a bubble on a wand
+      // it sits on top of the finger
       const lift = Math.min(1, w.held / 0.3) * 0.9;
       b.x += (w.x - b.x) * Math.min(1, dt * 18);
       b.y += (w.y - b.r * lift - b.y) * Math.min(1, dt * 18);
@@ -670,20 +670,6 @@
     c.closePath();
   }
 
-  // The ring of a bubble wand under the finger while blowing (peeking out
-  // round a finger, and plain to see with a mouse)
-  function drawWand(w) {
-    const a = Math.min(1, (w.held - BLOWING) / 0.2);
-    if (a <= 0) return;
-    const rr = unit * 0.045;
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.translate(w.x, w.y + rr * 0.6);
-    ctx.strokeStyle = '#ff6fae'; ctx.lineWidth = rr * 0.35;
-    ctx.beginPath(); ctx.ellipse(0, 0, rr, rr * 0.85, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.restore();
-  }
-
   // ---------- Main loop ----------
   let last = performance.now(), nextDrifter = 0.5;
   for (let k = 0; k < AMBIENT - 1; k++) addDrifter(H * (0.25 + Math.random() * 0.7));   // some already about
@@ -732,7 +718,6 @@
     drawSky();
     for (const b of bubbles) if (b.held === null) drawBubble(b);
     for (const w of blowers.values()) drawBubble(w.b);
-    for (const w of blowers.values()) drawWand(w);
 
     // pop rings
     for (let i = rings.length - 1; i >= 0; i--) {
@@ -778,10 +763,11 @@
       if (b) pop(b, 0.5);
       return;
     }
-    if (b) pop(b);
-    else if (bubbles.length < maxBubbles()) startBlowing(ev.pointerId, x, y);
+    if (b) {
+      pop(b);
+      party.add();   // only pops count (not blowing); a party starts at 20
+    } else if (bubbles.length < maxBubbles()) startBlowing(ev.pointerId, x, y);
     else return;
-    party.add();   // every bubble popped or blown counts; a party starts at 20
     if (navigator.vibrate) navigator.vibrate(15);
   });
   document.addEventListener('pointermove', ev => {

@@ -6,7 +6,7 @@ importScripts('../engine/sw.js');
 
 saveForOffline({
   name: 'button',
-  version: 17,
+  version: 18,
   // the emoji pictures on the buttons, so they work offline too. If you add a
   // button, add its picture here (anything missed is still saved the first
   // time it's shown with signal, but listing it means it's there from the start)

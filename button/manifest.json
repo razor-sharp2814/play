@@ -1,6 +1,6 @@
 {
-  "name": "The Button",
-  "short_name": "Button",
+  "name": "Buttons",
+  "short_name": "Buttons",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

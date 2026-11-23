@@ -144,10 +144,25 @@ async function play(page) {
     await ctx.close();
 
     // A palm or a handful of fingers landing together counts as one tap
-    // (engine/taps.js): five touches a few milliseconds apart, then lifted
+    // (engine/taps.js): five touches a few milliseconds apart, then lifted.
+    // Ordinary taps go first, so there's something there to count in games
+    // where not every tap counts: in Bubbles, a tap that doesn't count makes
+    // the bubble the palm then pops (a tap that does count popped one that
+    // happened to be drifting by, so it taps again). Up to 3, to leave room in
+    // the sea for another dolphin.
     [ctx, page] = await fresh();
     await open(page, url);
     await page.waitForTimeout(500);
+    {
+      const { width: tw, height: th } = page.viewportSize();
+      const shown = () => page.evaluate(() => (document.getElementById('count') || {}).textContent);
+      for (let i = 0; i < 3; i++) {
+        const before = await shown();
+        await page.mouse.click(tw / 2, th / 2);
+        await page.waitForTimeout(200);
+        if (await shown() === before) break;
+      }
+    }
     const smashed = await page.evaluate(async () => {
       if (!document.getElementById('count')) return 'no counter';
       const count = () => +document.getElementById('count').textContent;
@@ -271,12 +286,16 @@ async function play(page) {
         await page.mouse.down(); await page.waitForTimeout(3400); await page.mouse.up();
       };
       const { width: pw, height: ph } = page.viewportSize();
+      // Taps until a party, returning what the counter showed just before
+      // the tap that started it (not every tap counts in every game, e.g.
+      // blowing a bubble in Bubbles, so it's the count that matters).
       const tapUntilParty = async n => {
         for (let i = 0; i < n; i++) {
+          const before = await page.evaluate(() => document.getElementById('count').textContent);
           await page.mouse.click(pw / 2, ph / 2); await page.waitForTimeout(250);
-          if (await page.evaluate(() => document.getElementById('counter').classList.contains('party'))) return i + 1;
+          if (await page.evaluate(() => document.getElementById('counter').classList.contains('party'))) return { before };
         }
-        return 0;
+        return null;
       };
       await openSettings();
       const start = await page.evaluate(() => ({ on: document.querySelector('.gs-switch').checked, goal: document.querySelector('.gs-range').value }));
@@ -284,7 +303,7 @@ async function play(page) {
       await page.locator('.gs-range').fill('0');
       await page.getByRole('button', { name: 'Done' }).click();
       const after10 = await tapUntilParty(40);
-      check(after10 >= 10 && after10 <= 12, 'set to 10, the party comes after 10', `party after ${after10} taps`);
+      check(after10 && after10.before === '9', 'set to 10, the party comes on the 10th', after10 ? `counter showed ${after10.before} just before the party` : 'no party');
       await page.waitForTimeout(3500);
       await openSettings();
       await page.locator('.gs-switch').click();
