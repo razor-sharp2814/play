@@ -317,7 +317,11 @@ h3 { font-size: 1.5rem; line-height: 2rem; }
      clipped image, which shows the card through it on tilted or moving
      cards. */
   outline: 3px solid var(--ink);
-  outline-offset: -3px;
+  /* 1px of the outline sits outside the edge, so it covers the icon's own
+     edge too. Wholly inside, the rounded corners left a sliver of the icon
+     showing beyond it, which showed on pale icons (like Bubbles) against
+     a dark page. */
+  outline-offset: -2px;
 }
 
 /* Text column: title, sentence, then tags pinned to the bottom so they
