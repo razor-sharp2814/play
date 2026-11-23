@@ -1,10 +1,11 @@
 {
   "name": "play-checks",
   "private": true,
-  "description": "Checks every game still plays, saves itself and works offline. Also makes the link preview pictures.",
+  "description": "Checks every game still plays, saves itself and works offline. Also makes the link preview pictures and the printables.",
   "scripts": {
     "test": "node check.js",
-    "previews": "node previews.js"
+    "previews": "node previews.js",
+    "printables": "node printables.js"
   },
   "devDependencies": {
     "playwright": "1.56.1"

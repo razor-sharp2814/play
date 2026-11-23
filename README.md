@@ -42,6 +42,25 @@ Your own photos, one at a time, with nothing to press by mistake.
 - Grown-ups press and hold the grey button in the top right for 3 seconds to make albums and choose pictures. On Android, the device's picker usually shows your Google Photos albums too.
 - Pictures are copied into the game on that device only, shrunk to screen size and with their hidden details (like where they were taken) left out. Nothing is uploaded.
 
+## Printables
+
+Pages to print, listed under Printables on the listings page.
+
+### Dolphin colouring page
+
+The dolphin from Dolphins, leaping over the sea, as black and white line art to colour in. An A4 PDF: `printables/dolphin.pdf`.
+
+### Making a printable
+
+Each printable is drawn as an A4 page in `printables/<name>.svg`, measured in millimetres (`viewBox="0 0 210 297"`). Its `data-thumb="x y w h"` says which square part of the page to show on the listings page. To make (or remake) the PDF and that picture after changing a drawing:
+
+```
+cd _tests
+npm run printables        # every printable, or: npm run printables dolphin
+```
+
+Then add it to the listings page and this README.
+
 ## Getting a game on your home screen
 
 Once a game is saved, open it from its own icon. It runs full screen, like an app, and works without signal or Wi-Fi. Open it once with signal first so it can save itself.
